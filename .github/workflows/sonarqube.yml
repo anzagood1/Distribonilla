@@ -1,4 +1,3 @@
-
 name: SonarQube Analysis
 
 on:
@@ -39,11 +38,9 @@ jobs:
 
         with:
           args: >
+            -Dsonar.organization=TU_ORGANIZATION_KEY
             -Dsonar.projectKey=TU_PROJECT_KEY
             -Dsonar.projectName=Distribonilla
             -Dsonar.sources=frontend/src,backend
             -Dsonar.sourceEncoding=UTF-8
-            -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/build/**,**/__pycache__/**,**/.venv/**,**/venv/**,**/coverage/**
-
             -Dsonar.qualitygate.wait=true
-            -Dsonar.qualitygate.timeout=300
