@@ -33,7 +33,7 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
           args: >
-            -Dsonar.organization=anzagoog1
+            -Dsonar.organization=anzagood1
             -Dsonar.projectKey=anzagood1_Distribonilla
             -Dsonar.projectName=Distribonilla
             -Dsonar.sources=frontend/src,backend
