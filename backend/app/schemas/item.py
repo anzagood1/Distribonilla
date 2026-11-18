@@ -1,6 +1,7 @@
 from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional
 
+
 # Propiedades compartidas
 class ItemBase(BaseModel):
     name: str = Field(..., max_length=150)
@@ -10,9 +11,11 @@ class ItemBase(BaseModel):
     stock: int = Field(0, ge=0)
     is_active: bool = True
 
+
 # Propiedades para crear (POST)
 class ItemCreate(ItemBase):
     pass
+
 
 # Propiedades para actualizar (PUT) - Todos los campos son opcionales
 class ItemUpdate(BaseModel):
@@ -22,6 +25,7 @@ class ItemUpdate(BaseModel):
     price: Optional[float] = Field(None, gt=0)
     stock: Optional[int] = Field(None, ge=0)
     is_active: Optional[bool] = None
+
 
 # Propiedades que devuelve la API (GET)
 class ItemResponse(ItemBase):
