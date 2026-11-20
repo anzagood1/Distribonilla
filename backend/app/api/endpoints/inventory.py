@@ -8,7 +8,10 @@ from app.crud import crud_item
 
 router = APIRouter()
 
-@router.post("/items/", response_model=ItemResponse, status_code=status.HTTP_201_CREATED)
+
+@router.post(
+    "/items/", response_model=ItemResponse, status_code=status.HTTP_201_CREATED
+)
 def create_item(item: ItemCreate, db: Session = Depends(get_db)):
     """
     Registra un nuevo producto en el catálogo.
@@ -32,6 +35,8 @@ def update_item(item_id: int, item_update: ItemUpdate, db: Session = Depends(get
     """
     db_item = crud_item.get_item(db, item_id=item_id)
     if db_item is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ítem no encontrado")
-    
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Ítem no encontrado"
+        )
+
     return crud_item.update_item(db=db, db_item=db_item, item_update=item_update)
