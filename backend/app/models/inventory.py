@@ -1,4 +1,14 @@
-from sqlalchemy import BigInteger, Boolean, Column, DateTime, Enum, ForeignKey, Integer, Numeric, Text
+from sqlalchemy import (
+    BigInteger,
+    Boolean,
+    Column,
+    DateTime,
+    Enum,
+    ForeignKey,
+    Integer,
+    Numeric,
+    Text,
+)
 from sqlalchemy.dialects.postgresql import UUID
 
 from app.db.base import Base
@@ -37,7 +47,10 @@ class MovimientoInventario(Base):
 
     id = Column(BigInteger, primary_key=True)
     producto_id = Column(BigInteger, ForeignKey("productos.id"), nullable=False)
-    tipo = Column(Enum("entrada", "salida", name="tipo_movimiento", create_constraint=False), nullable=False)
+    tipo = Column(
+        Enum("entrada", "salida", name="tipo_movimiento", create_constraint=False),
+        nullable=False,
+    )
     cantidad = Column(Integer, nullable=False)
     motivo = Column(Text, nullable=False)
     notas = Column(Text)
