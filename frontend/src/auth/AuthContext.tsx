@@ -12,17 +12,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let mounted = true
+    let hasAuthEvent = false
 
-    supabase.auth.getSession().then(({ data, error }) => {
-      if (!mounted) return
-      setSession(error ? null : data.session)
+    const { data } = supabase.auth.onAuthStateChange((event, nextSession) => {
+      // A late startup snapshot cannot replace an auth event we already handled.
+      if (!mounted || (event === 'INITIAL_SESSION' && hasAuthEvent)) return
+      hasAuthEvent = true
+      setSession(nextSession)
       setLoading(false)
     })
 
-    const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-      if (!mounted) return
-      setSession(nextSession)
+    supabase.auth.getSession().then(({ data, error }) => {
+      if (!mounted || hasAuthEvent) return
+      setSession(error ? null : data.session)
       setLoading(false)
+    }).catch(() => {
+      if (mounted && !hasAuthEvent) setLoading(false)
     })
 
     return () => {

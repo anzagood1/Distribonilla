@@ -1,7 +1,8 @@
-import { useState, type FormEvent } from 'react'
+import { useLayoutEffect, useRef, useState, type FormEvent } from 'react'
 import { Eye, EyeOff, LoaderCircle } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
+import { getLoginErrorMessage } from '../utils/loginErrors'
 import { validateLogin, type LoginValidationResult } from '../utils/loginValidation'
 
 export function LoginPage() {
@@ -13,6 +14,12 @@ export function LoginPage() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<LoginValidationResult['errors']>({})
+  const mounted = useRef(false)
+
+  useLayoutEffect(() => {
+    mounted.current = true
+    return () => { mounted.current = false }
+  }, [])
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -27,15 +34,21 @@ export function LoginPage() {
     if (validated.errors.email || validated.errors.password) return
 
     setSubmitting(true)
-    const result = await login(validated.email, validated.password)
-    setSubmitting(false)
+    try {
+      const result = await login(validated.email, validated.password)
+      if (!mounted.current) return
 
-    if (result.error) {
-      setError(result.error)
-      return
+      if (result.error) {
+        setError(result.error)
+        return
+      }
+
+      await navigate('/home', { replace: true })
+    } catch {
+      if (mounted.current) setError(getLoginErrorMessage('unexpected', 'es'))
+    } finally {
+      if (mounted.current) setSubmitting(false)
     }
-
-    navigate('/home', { replace: true })
   }
 
   return (
