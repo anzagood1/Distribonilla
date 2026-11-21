@@ -8,7 +8,10 @@ class Settings(BaseSettings):
     DATABASE_URL: str
 
     # Pydantic buscará automáticamente estas variables en el archivo .env
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+    model_config = SettingsConfigDict(
+        env_file=(".env", "../.env"),
+        env_file_encoding="utf-8",
+    )
 
 
 # Instancia global para usar en toda la app
