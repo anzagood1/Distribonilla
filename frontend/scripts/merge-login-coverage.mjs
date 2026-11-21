@@ -2,7 +2,11 @@ import { readFileSync, statSync, writeFileSync } from 'node:fs'
 import { relative, resolve, sep } from 'node:path'
 
 const frontend = process.cwd()
-const expectedComponents = new Set(['src/auth/AuthContext.tsx', 'src/pages/LoginPage.tsx'])
+const expectedComponents = new Set([
+  'src/auth/AuthContext.tsx',
+  'src/components/UserMenu.tsx',
+  'src/pages/LoginPage.tsx',
+])
 
 function readReport(file) {
   const records = new Map()

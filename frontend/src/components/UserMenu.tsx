@@ -33,7 +33,7 @@ export function UserMenu() {
     await logout()
     setSigningOut(false)
     setOpen(false)
-    navigate('/login', { replace: true })
+    await navigate('/login', { replace: true })
   }
 
   return (
