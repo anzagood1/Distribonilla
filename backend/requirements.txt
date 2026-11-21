@@ -32,7 +32,7 @@ pydantic_core==2.50.1
 PyJWT==2.15.1
 python-dotenv==1.2.4
 realtime==2.33.0
-ruff=0.17.5
+ruff==0.17.5
 SQLAlchemy==2.1.5
 starlette==1.9.0
 storage3==2.33.0
