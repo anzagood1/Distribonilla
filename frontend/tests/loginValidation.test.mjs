@@ -47,3 +47,42 @@ test('does not impose registration rules on an existing password', () => {
     assert.deepEqual(result.errors, {})
   }
 })
+
+test('preserves acceptance of domains with multiple dots', () => {
+  for (const email of [
+    'user@sub.example.com',
+    'user@example..com',
+    'user@.example.com',
+    'user@example.com.',
+  ]) {
+    assert.deepEqual(validateLogin({ email, password: 'example-password' }).errors, {}, email)
+  }
+})
+
+test('rejects extra at signs, internal whitespace, and misplaced domain dots', () => {
+  for (const email of [
+    'user@@example.com',
+    'user@example.com@other.com',
+    'user@exam ple.com',
+    'user@example.\tcom',
+    'us\u00a0er@example.com',
+    'user@.example',
+    'user@example.',
+    'user@.',
+  ]) {
+    const result = validateLogin({ email, password: 'example-password' })
+    assert.equal(result.errors.email, 'Enter a valid email address.', email)
+  }
+})
+
+test('validates long domains without changing the password', () => {
+  const label = 'x'.repeat(4096)
+  const password = ' \tp@ss\u00e9 \n'
+  const valid = validateLogin({ email: `user@sub.${label}.example.com`, password })
+  const invalid = validateLogin({ email: `user@${label}.`, password })
+
+  assert.deepEqual(valid.errors, {})
+  assert.equal(invalid.errors.email, 'Enter a valid email address.')
+  assert.equal(valid.password, password)
+  assert.equal(invalid.password, password)
+})
