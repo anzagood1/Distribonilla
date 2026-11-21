@@ -1,5 +1,8 @@
 from sqlalchemy import Column, Integer, String, Float, Text, Boolean  # type: ignore[reportMissingImports]
-from app.db.base import Base # Asegúrate de tener tu Base = declarative_base() en db/base.py
+from app.db.base import (
+    Base,
+)  # Asegúrate de tener tu Base = declarative_base() en db/base.py
+
 
 class Item(Base):
     __tablename__ = "items"
