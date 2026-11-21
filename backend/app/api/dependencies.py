@@ -59,10 +59,14 @@ def get_current_user(
             detail="Usuario autenticado sin autorización",
         )
 
-    user = db.query(Usuario).filter(
-        Usuario.auth_user_id == auth_uuid,
-        Usuario.activo.is_(True),
-    ).first()
+    user = (
+        db.query(Usuario)
+        .filter(
+            Usuario.auth_user_id == auth_uuid,
+            Usuario.activo.is_(True),
+        )
+        .first()
+    )
 
     if user is None:
         raise HTTPException(
