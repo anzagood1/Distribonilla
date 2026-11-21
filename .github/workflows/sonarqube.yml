@@ -27,6 +27,47 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Run frontend tests and coverage
+        working-directory: frontend
+        shell: bash
+        run: |
+          TEST_FILES=$(find src -type f \( -name '*.test.ts' -o -name '*.test.tsx' -o -name '*.test.js' -o -name '*.test.jsx' -o -name '*.spec.ts' -o -name '*.spec.tsx' -o -name '*.spec.js' -o -name '*.spec.jsx' \) -print)
+          if [ -n "$TEST_FILES" ]; then
+            npm run test:coverage
+          else
+            echo "No frontend test files found; skipping frontend coverage."
+          fi
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install backend test dependencies
+        run: python -m pip install --upgrade pip pytest pytest-cov
+
+      - name: Run backend tests and coverage
+        working-directory: backend
+        shell: bash
+        run: |
+          TEST_FILES=$(find . -type f \( -name 'test_*.py' -o -name '*_test.py' \) -not -path './.venv/*' -print)
+          if [ -n "$TEST_FILES" ]; then
+            python -m pytest -q --cov=app --cov-report=xml:../coverage/backend.xml --cov-report=term-missing
+          else
+            echo "No backend test files found; skipping backend coverage."
+          fi
+
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@v8.3.0
         env:
@@ -36,6 +77,11 @@ jobs:
             -Dsonar.organization=anzagood1
             -Dsonar.projectKey=anzagood1_Distribonilla
             -Dsonar.projectName=Distribonilla
-            -Dsonar.sources=frontend/src,backend
             -Dsonar.sourceEncoding=UTF-8
+            -Dsonar.python.version=3.10
+            -Dsonar.test.inclusions=**/*.test.ts,**/*.test.tsx,**/*.test.js,**/*.test.jsx,**/*.spec.ts,**/*.spec.tsx,**/*.spec.js,**/*.spec.jsx,**/test_*.py,**/*_test.py
+            -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/__pycache__/**,**/alembic/**,backend/alembic/**,frontend/dist/**
+            -Dsonar.coverage.exclusions=**/*.test.ts,**/*.test.tsx,**/*.test.js,**/*.test.jsx,**/*.spec.ts,**/*.spec.tsx,**/*.spec.js,**/*.spec.jsx,**/test_*.py,**/*_test.py,backend/alembic/**,**/alembic/**
+            -Dsonar.javascript.lcov.reportPaths=coverage/frontend/lcov.info
+            -Dsonar.python.coverage.reportPaths=coverage/backend.xml
             -Dsonar.qualitygate.wait=true
