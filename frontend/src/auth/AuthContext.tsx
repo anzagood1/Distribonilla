@@ -1,7 +1,9 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import type { Session } from '@supabase/supabase-js'
+import { isAxiosError } from 'axios'
 import { supabase } from '../utils/supabase'
-import { loginWithBackend } from '../services/auth'
+import { loginWithBackend, type LoginResponse } from '../services/auth'
+import { classifyLoginError, getLoginErrorMessage } from '../utils/loginErrors'
 import { AuthContext } from './AuthStore'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -30,18 +32,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const login = async (email: string, password: string) => {
+    const fallback = getLoginErrorMessage('unexpected', 'es')
+    let result: LoginResponse
+
     try {
-      const result = await loginWithBackend(email, password)
+      result = await loginWithBackend(email, password)
+    } catch (error) {
+      const category = isAxiosError(error)
+        ? classifyLoginError(error.response?.status, error.code)
+        : 'unexpected'
+      return { error: getLoginErrorMessage(category, 'es') }
+    }
+
+    if (
+      typeof result?.access_token !== 'string' || !result.access_token ||
+      typeof result?.refresh_token !== 'string' || !result.refresh_token
+    ) {
+      return { error: fallback }
+    }
+
+    try {
       const { error } = await supabase.auth.setSession({
         access_token: result.access_token,
         refresh_token: result.refresh_token,
       })
-      return { error: error?.message ?? null }
-    } catch (error) {
-      if (typeof error === 'object' && error !== null && 'response' in error) {
-        return { error: 'Credenciales inválidas o servicio no disponible.' }
-      }
-      return { error: 'No fue posible iniciar sesión.' }
+      return { error: error ? fallback : null }
+    } catch {
+      return { error: fallback }
     }
   }
 

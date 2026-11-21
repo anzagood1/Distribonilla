@@ -86,3 +86,38 @@ test('validates long domains without changing the password', () => {
   assert.equal(valid.password, password)
   assert.equal(invalid.password, password)
 })
+
+test('reports both required fields in Spanish', () => {
+  const result = validateLogin({ email: '  ', password: '' }, { locale: 'es' })
+
+  assert.deepEqual(result.errors, {
+    email: 'Ingresa tu correo electrónico.',
+    password: 'Ingresa tu contraseña.',
+  })
+})
+
+test('reports a basic email format error in Spanish', () => {
+  const result = validateLogin({ email: 'user@intranet', password: 'x' }, { locale: 'es' })
+
+  assert.equal(result.errors.email, 'Ingresa un correo electrónico válido.')
+})
+
+test('honors both native email validity flags even when the basic format passes', () => {
+  const input = { email: 'user@example..com', password: 'x' }
+  for (const emailValidity of [
+    { badInput: false, typeMismatch: true },
+    { badInput: true, typeMismatch: false },
+  ]) {
+    const result = validateLogin(input, { locale: 'es', emailValidity })
+    assert.equal(result.errors.email, 'Ingresa un correo electrónico válido.')
+  }
+})
+
+test('accepts a natively valid email and preserves the original password in Spanish mode', () => {
+  const result = validateLogin({ email: '  User@example.com  ', password: '  x  ' }, {
+    locale: 'es',
+    emailValidity: { badInput: false, typeMismatch: false },
+  })
+
+  assert.deepEqual(result, { email: 'User@example.com', password: '  x  ', errors: {} })
+})

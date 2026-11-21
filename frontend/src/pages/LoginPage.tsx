@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { Eye, EyeOff, LoaderCircle } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
+import { validateLogin, type LoginValidationResult } from '../utils/loginValidation'
 
 export function LoginPage() {
   const { login } = useAuth()
@@ -11,13 +12,22 @@ export function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<LoginValidationResult['errors']>({})
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setError(null)
-    setSubmitting(true)
 
-    const result = await login(email.trim(), password)
+    const emailInput = event.currentTarget.elements.namedItem('email')
+    const validated = validateLogin({ email, password }, {
+      locale: 'es',
+      emailValidity: emailInput instanceof HTMLInputElement ? emailInput.validity : undefined,
+    })
+    setFieldErrors(validated.errors)
+    if (validated.errors.email || validated.errors.password) return
+
+    setSubmitting(true)
+    const result = await login(validated.email, validated.password)
     setSubmitting(false)
 
     if (result.error) {
@@ -37,12 +47,21 @@ export function LoginPage() {
           <p>Accede a tu cuenta para continuar</p>
         </header>
 
-        <form className="login-form" onSubmit={handleSubmit}>
+        <form className="login-form" onSubmit={handleSubmit} noValidate>
           <div className="field-group">
             <label htmlFor="email">Correo electrónico</label>
             <input id="email" name="email" type="email" autoComplete="email" value={email}
-              onChange={(event) => setEmail(event.target.value)} placeholder="nombre@ejemplo.com"
-              required disabled={submitting} />
+              onChange={(event) => {
+                setEmail(event.target.value)
+                setFieldErrors((current) => ({ ...current, email: undefined }))
+                setError(null)
+              }}
+              placeholder="nombre@ejemplo.com" required disabled={submitting}
+              aria-invalid={Boolean(fieldErrors.email)}
+              aria-describedby={fieldErrors.email ? 'login-email-error' : undefined} />
+            {fieldErrors.email && (
+              <div className="auth-error" id="login-email-error" role="alert">{fieldErrors.email}</div>
+            )}
           </div>
 
           <div className="field-group">
@@ -50,8 +69,14 @@ export function LoginPage() {
             <div className="password-field">
               <input id="password" name="password" type={showPassword ? 'text' : 'password'}
                 autoComplete="current-password" value={password}
-                onChange={(event) => setPassword(event.target.value)} placeholder="Ingresa tu contraseña"
-                required disabled={submitting} />
+                onChange={(event) => {
+                  setPassword(event.target.value)
+                  setFieldErrors((current) => ({ ...current, password: undefined }))
+                  setError(null)
+                }}
+                placeholder="Ingresa tu contraseña" required disabled={submitting}
+                aria-invalid={Boolean(fieldErrors.password)}
+                aria-describedby={fieldErrors.password ? 'login-password-error' : undefined} />
               <button type="button" className="password-toggle"
                 aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
                 aria-pressed={showPassword} onClick={() => setShowPassword((visible) => !visible)}
@@ -59,6 +84,9 @@ export function LoginPage() {
                 {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
               </button>
             </div>
+            {fieldErrors.password && (
+              <div className="auth-error" id="login-password-error" role="alert">{fieldErrors.password}</div>
+            )}
           </div>
 
           {error && <div className="auth-error" role="alert">{error}</div>}
