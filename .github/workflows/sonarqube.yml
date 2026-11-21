@@ -1,4 +1,5 @@
-name: SonarQube Analysis
+
+name: SonarCloud Analysis
 
 on:
   push:
@@ -8,7 +9,10 @@ on:
   pull_request:
     branches:
       - main
-    types: [opened, synchronize, reopened]
+    types:
+      - opened
+      - synchronize
+      - reopened
 
   workflow_dispatch:
 
@@ -17,17 +21,68 @@ permissions:
   pull-requests: read
 
 jobs:
-  sonarqube:
-    name: Static Code Analysis
+  sonarcloud:
+    name: Tests and SonarCloud Analysis
     runs-on: ubuntu-latest
 
     steps:
+      # 1. Descargar el repositorio
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: SonarQube Scan
+      # 2. Configurar Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      # 3. Instalar dependencias del frontend
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      # 4. Ejecutar pruebas y generar cobertura
+      - name: Run tests and generate coverage
+        working-directory: frontend
+        run: npm run test:coverage
+
+      # 5. Verificar que existan pruebas y que el reporte LCOV tenga datos
+      - name: Verify test coverage
+        working-directory: frontend
+        run: |
+          echo "Verificando archivos de pruebas..."
+
+          if ! find tests -type f -name "*.test.mjs" | grep -q .; then
+            echo "ERROR: No se encontraron archivos de pruebas."
+            exit 1
+          fi
+
+          echo "Verificando reporte LCOV..."
+
+          if [ ! -s coverage/lcov.info ]; then
+            echo "ERROR: El reporte LCOV está vacío o no existe."
+            exit 1
+          fi
+
+          if ! grep -q "^SF:" coverage/lcov.info; then
+            echo "ERROR: El reporte LCOV no contiene archivos fuente."
+            exit 1
+          fi
+
+          echo "Archivos incluidos en el reporte:"
+          grep "^SF:" coverage/lcov.info
+
+          echo "Resumen de cobertura:"
+          grep -E "^(LF|LH):" coverage/lcov.info
+
+          echo "Reporte LCOV verificado correctamente."
+
+      # 6. Ejecutar análisis de SonarCloud
+      - name: SonarCloud Scan
         uses: SonarSource/sonarqube-scan-action@v8.3.0
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -36,6 +91,7 @@ jobs:
             -Dsonar.organization=anzagood1
             -Dsonar.projectKey=anzagood1_Distribonilla
             -Dsonar.projectName=Distribonilla
-            -Dsonar.sources=frontend/src,backend
+            -Dsonar.coverage.exclusions=frontend/tests/**
+            -Dsonar.javascript.lcov.reportPaths=frontend/coverage/lcov.info
             -Dsonar.sourceEncoding=UTF-8
             -Dsonar.qualitygate.wait=true
