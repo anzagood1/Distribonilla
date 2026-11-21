@@ -1,4 +1,3 @@
-
 from sqlalchemy import (
     BigInteger,
     Boolean,
@@ -30,8 +29,6 @@ class Categoria(Base):
 
 
 class Item(Base):
-
-
     __tablename__ = "productos"
     __table_args__ = (
         CheckConstraint("precio_unitario > 0", name="productos_precio_unitario_check"),

@@ -12,20 +12,18 @@ from sqlalchemy.orm import sessionmaker  # noqa: E402
 from sqlalchemy.pool import StaticPool  # noqa: E402
 
 from app.api.dependencies import get_db  # noqa: E402
-from app.db.base import Base   # noqa: E402
-from app.main import app    # noqa: E402
+from app.db.base import Base  # noqa: E402
+from app.main import app  # noqa: E402
 
 
 @pytest.fixture
 def db_session():
-    
     engine = create_engine(
         "sqlite://",
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
 
-    
     @event.listens_for(engine, "connect")
     def _enable_constraints(dbapi_connection, _):
         dbapi_connection.execute("PRAGMA ignore_check_constraints = OFF")
@@ -42,7 +40,6 @@ def db_session():
 
 @pytest.fixture
 def client(db_session):
-    
     app.dependency_overrides[get_db] = lambda: db_session
     with TestClient(app) as test_client:
         yield test_client

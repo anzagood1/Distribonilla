@@ -1,4 +1,3 @@
-
 URL = "/api/v1/inventory/items/"
 
 PRODUCT = {
@@ -15,7 +14,7 @@ def test_prod_api_01_create_and_list_product(client):
     assert response.status_code == 201
     body = response.json()
     assert body["talla"] == "32"
-    assert body["precio_unitario"] == 24.99  
+    assert body["precio_unitario"] == 24.99
     assert body["aplica_iva"] is True
 
     listed = client.get(URL).json()
@@ -33,4 +32,4 @@ def test_prod_api_03_update_size(client):
     response = client.put(f"{URL}{item_id}", json={"talla": "34"})
     assert response.status_code == 200
     assert response.json()["talla"] == "34"
-    assert response.json()["nombre"] == "Pantalón jean azul" 
+    assert response.json()["nombre"] == "Pantalón jean azul"
