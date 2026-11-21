@@ -7,7 +7,10 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "test": "node --test",
+    "test:coverage": "c8 --all --src src --reports-dir coverage/unit --reporter=lcovonly --reporter=text node --test && npm run test:components -- --coverage && node scripts/merge-login-coverage.mjs",
+    "preview": "vite preview",
+    "test:components": "vitest run"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.118.0",
@@ -19,19 +22,24 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@testing-library/react": "16.3.3",
     "@types/node": "^24.19.2",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",
+    "@vitest/coverage-v8": "5.1.1",
+    "c8": "^12.0.0",
     "eslint": "^10.13.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.7",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.7",
     "globals": "^17.13.0",
+    "jsdom": "31.0.1",
     "prettier": "^3.9.10",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.71.2",
-    "vite": "^8.3.4"
+    "vite": "^8.3.4",
+    "vitest": "5.1.1"
   }
 }
