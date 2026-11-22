@@ -1,23 +1,20 @@
 import os
 
+import pytest
+from fastapi.testclient import TestClient
+from sqlalchemy import create_engine, event
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 
 os.environ.setdefault("VITE_SUPABASE_URL", "https://test.supabase.co")
 os.environ.setdefault("VITE_SUPABASE_PUBLISHABLE_KEY", "test-key")
 os.environ.setdefault("DATABASE_URL", "postgresql://test:test@localhost/test")
 
-import pytest  # noqa: E402
-from fastapi.testclient import TestClient  # noqa: E402
-from sqlalchemy import create_engine, event  # noqa: E402
-from sqlalchemy.orm import sessionmaker  # noqa: E402
-from sqlalchemy.pool import StaticPool  # noqa: E402
-
-from app.api.dependencies import get_db  # noqa: E402
-from app.db.base import Base  # noqa: E402
-from app.main import app  # noqa: E402
-
 
 @pytest.fixture
 def db_session():
+    from app.db.base import Base
+
     engine = create_engine(
         "sqlite://",
         connect_args={"check_same_thread": False},
@@ -40,6 +37,9 @@ def db_session():
 
 @pytest.fixture
 def client(db_session):
+    from app.api.dependencies import get_db
+    from app.main import app
+
     app.dependency_overrides[get_db] = lambda: db_session
     with TestClient(app) as test_client:
         yield test_client

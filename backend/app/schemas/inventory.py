@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, Field, StrictInt, field_validator
 
@@ -8,7 +7,7 @@ class InventoryEntryCreate(BaseModel):
     producto_id: StrictInt = Field(..., gt=0)
     cantidad: StrictInt = Field(..., gt=0)
     motivo: str = Field(..., min_length=1, max_length=500)
-    notas: Optional[str] = Field(default=None, max_length=2000)
+    notas: str | None = Field(default=None, max_length=2000)
 
     @field_validator("motivo")
     @classmethod
@@ -20,7 +19,7 @@ class InventoryEntryCreate(BaseModel):
 
     @field_validator("notas")
     @classmethod
-    def notas_validas(cls, value: Optional[str]) -> Optional[str]:
+    def notas_validas(cls, value: str | None) -> str | None:
         if value is None:
             return None
         value = value.strip()
@@ -33,7 +32,7 @@ class InventoryEntryResponse(BaseModel):
     tipo: str
     cantidad: int
     motivo: str
-    notas: Optional[str]
+    notas: str | None
     fecha: datetime
     usuario_id: int
     stock_anterior: int

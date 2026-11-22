@@ -4,6 +4,7 @@ import os
 import threading
 import uuid
 from concurrent.futures import ThreadPoolExecutor
+from datetime import UTC
 
 import pytest
 from fastapi.testclient import TestClient
@@ -241,7 +242,7 @@ def test_missing_trigger_rolls_back_insert(pg_api):
 
 
 def test_expired_key_is_reused_after_24_hour_window(pg_api):
-    from datetime import datetime, timedelta, timezone
+    from datetime import datetime, timedelta
 
     _, factory = pg_api
     assert send(1, key="expiry").status_code == 201
@@ -249,7 +250,7 @@ def test_expired_key_is_reused_after_24_hour_window(pg_api):
         key = session.scalar(
             select(IdempotencyKey).where(IdempotencyKey.key == "expiry")
         )
-        key.expires_at = datetime.now(timezone.utc) - timedelta(seconds=1)
+        key.expires_at = datetime.now(UTC) - timedelta(seconds=1)
     assert send(2, key="expiry").status_code == 201
     assert state(factory) == (
         2,

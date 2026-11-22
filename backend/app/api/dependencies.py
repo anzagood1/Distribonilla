@@ -10,7 +10,6 @@ from app.core.supabase import create_supabase_client
 from app.db.session import SessionLocal
 from app.models.inventory import Usuario
 
-
 bearer_scheme = HTTPBearer(auto_error=False)
 
 
@@ -22,9 +21,13 @@ def get_db():
         db.close()
 
 
+BEARER_CREDENTIALS_DEPENDENCY = Depends(bearer_scheme)
+DB_DEPENDENCY = Depends(get_db)
+
+
 def get_current_user(
-    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
-    db: Session = Depends(get_db),
+    credentials: HTTPAuthorizationCredentials | None = BEARER_CREDENTIALS_DEPENDENCY,
+    db: Session = DB_DEPENDENCY,
 ) -> Usuario:
     if credentials is None:
         raise HTTPException(
@@ -75,3 +78,6 @@ def get_current_user(
         )
 
     return user
+
+
+CURRENT_USER_DEPENDENCY = Depends(get_current_user)

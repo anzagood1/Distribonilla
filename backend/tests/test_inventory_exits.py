@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from unittest.mock import Mock
 
 import pytest
@@ -147,7 +147,7 @@ def test_replay_and_conflict_are_bound_to_actor_and_request():
 def test_expired_key_can_be_reused():
     product = Item(id=1, activo=True, stock_actual=5)
     previous = IdempotencyKey(
-        key="X", expires_at=datetime.now(timezone.utc) - timedelta(seconds=1)
+        key="X", expires_at=datetime.now(UTC) - timedelta(seconds=1)
     )
     db, added, _ = make_db(product, previous)
     register_inventory_exit(entry(), db, Usuario(id=7, activo=True), "X")
@@ -223,6 +223,7 @@ def test_authenticated_but_unregistered_user_is_403(client, monkeypatch):
 
 def test_unique_key_integrity_conflict_is_409(monkeypatch):
     from sqlalchemy.exc import IntegrityError
+
     import app.api.endpoints.inventory_exits as exits
 
     product = Item(id=1, activo=True, stock_actual=5)
@@ -232,7 +233,7 @@ def test_unique_key_integrity_conflict_is_409(monkeypatch):
         request_hash="different",
         route=exits.EXIT_ROUTE,
         user_id=7,
-        expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+        expires_at=datetime.now(UTC) + timedelta(hours=1),
         response_body={"id": 33},
     )
     db.query(IdempotencyKey).filter().first.side_effect = [None, None, existing]
@@ -260,6 +261,7 @@ def test_unique_key_integrity_conflict_is_409(monkeypatch):
 
 def test_unique_violation_on_unrelated_index_stays_500(monkeypatch):
     from sqlalchemy.exc import IntegrityError
+
     import app.api.endpoints.inventory_exits as exits
 
     db, _, _ = make_db(Item(id=1, activo=True, stock_actual=5))
@@ -309,7 +311,9 @@ def test_notes_are_normalized(notes, expected):
 def test_race_recovery_respects_identity_route_and_expiry(monkeypatch, kind):
     import hashlib
     import json
+
     from sqlalchemy.exc import IntegrityError
+
     import app.api.endpoints.inventory_exits as exits
 
     request = entry()
@@ -326,8 +330,7 @@ def test_race_recovery_respects_identity_route_and_expiry(monkeypatch, kind):
         request_hash=digest,
         route="/other" if kind == "other_route" else exits.EXIT_ROUTE,
         user_id=8 if kind == "other_user" else 7,
-        expires_at=datetime.now(timezone.utc)
-        + timedelta(hours=-1 if kind == "expired" else 1),
+        expires_at=datetime.now(UTC) + timedelta(hours=-1 if kind == "expired" else 1),
         response_body={"id": 33},
     )
     db, _, _ = make_db(Item(id=1, activo=True, stock_actual=5))
@@ -393,6 +396,7 @@ def test_race_recovery_rejects_indexes_that_do_not_uniquely_cover_key(
     monkeypatch, index
 ):
     from sqlalchemy.exc import IntegrityError
+
     import app.api.endpoints.inventory_exits as exits
 
     db, _, _ = make_db(Item(id=1, activo=True, stock_actual=5))
@@ -413,6 +417,7 @@ def test_race_recovery_rejects_indexes_that_do_not_uniquely_cover_key(
 
 def test_race_recovery_metadata_failure_rolls_back(monkeypatch):
     from sqlalchemy.exc import IntegrityError
+
     import app.api.endpoints.inventory_exits as exits
 
     db, _, _ = make_db(Item(id=1, activo=True, stock_actual=5))
@@ -433,11 +438,12 @@ def test_race_recovery_metadata_failure_rolls_back(monkeypatch):
 
 def test_expired_race_retry_is_bounded(monkeypatch):
     from sqlalchemy.exc import IntegrityError
+
     import app.api.endpoints.inventory_exits as exits
 
     db, _, _ = make_db(Item(id=1, activo=True, stock_actual=5))
     expired = IdempotencyKey(
-        key="X", expires_at=datetime.now(timezone.utc) - timedelta(seconds=1)
+        key="X", expires_at=datetime.now(UTC) - timedelta(seconds=1)
     )
     db.query(IdempotencyKey).filter().first.side_effect = [
         None,

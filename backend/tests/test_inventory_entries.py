@@ -1,12 +1,12 @@
-from datetime import datetime, timedelta, timezone
 import hashlib
 import json
+from datetime import UTC, datetime, timedelta
 from unittest.mock import Mock
 
 import pytest
 from fastapi import HTTPException
 from pydantic import ValidationError
-from sqlalchemy.exc import SQLAlchemyError, IntegrityError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from app.api.endpoints.inventory import register_inventory_entry
 from app.models.inventory import IdempotencyKey, MovimientoInventario, Usuario
@@ -69,7 +69,7 @@ def test_quantity_must_be_positive_integer():
 
 def test_register_entry_updates_stock_and_creates_movement():
     product = Item(id=1, activo=True, stock_actual=20)
-    product.actualizado_en = datetime.now(timezone.utc)
+    product.actualizado_en = datetime.now(UTC)
     db = make_db(product)
     user = Usuario(id=7, activo=True)
     entry = InventoryEntryCreate(
@@ -131,7 +131,7 @@ def test_repeated_idempotency_key_returns_original_response():
         "cantidad": 4,
         "motivo": "Compra proveedor",
         "notas": "Prueba",
-        "fecha": datetime.now(timezone.utc).isoformat(),
+        "fecha": datetime.now(UTC).isoformat(),
         "usuario_id": 7,
         "stock_anterior": 5,
         "stock_resultante": 9,
@@ -144,8 +144,8 @@ def test_repeated_idempotency_key_returns_original_response():
         response_body=stored_body,
         movement_id=33,
         user_id=7,
-        created_at=datetime.now(timezone.utc),
-        expires_at=datetime.now(timezone.utc) + timedelta(hours=24),
+        created_at=datetime.now(UTC),
+        expires_at=datetime.now(UTC) + timedelta(hours=24),
     )
     db = make_idempotent_db(product, existing)
 
@@ -176,8 +176,8 @@ def test_same_key_with_different_content_is_conflict():
         response_body={"id": 33},
         movement_id=33,
         user_id=7,
-        created_at=datetime.now(timezone.utc),
-        expires_at=datetime.now(timezone.utc) + timedelta(hours=24),
+        created_at=datetime.now(UTC),
+        expires_at=datetime.now(UTC) + timedelta(hours=24),
     )
     db = make_idempotent_db(product, existing)
 
@@ -209,8 +209,8 @@ def test_expired_idempotency_key_is_removed_and_entry_is_registered():
         response_body={"id": 33},
         movement_id=33,
         user_id=7,
-        created_at=datetime.now(timezone.utc) - timedelta(days=2),
-        expires_at=datetime.now(timezone.utc) - timedelta(hours=1),
+        created_at=datetime.now(UTC) - timedelta(days=2),
+        expires_at=datetime.now(UTC) - timedelta(hours=1),
     )
     db = make_idempotent_db(product, existing)
 

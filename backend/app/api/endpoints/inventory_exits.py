@@ -1,15 +1,15 @@
-from datetime import datetime, timedelta, timezone
 import hashlib
 import json
 import logging
+from datetime import UTC, datetime, timedelta
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Header, HTTPException, status
+from fastapi import APIRouter, Header, HTTPException, status
 from sqlalchemy import inspect
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from app.api.dependencies import get_current_user, get_db
+from app.api.dependencies import CURRENT_USER_DEPENDENCY, DB_DEPENDENCY
 from app.models.inventory import IdempotencyKey, MovimientoInventario, Usuario
 from app.models.item import Item
 from app.schemas.inventory import InventoryEntryResponse
@@ -23,8 +23,8 @@ EXIT_ROUTE = "/api/v1/inventory/exits"
 @router.post("/exits", response_model=InventoryEntryResponse, status_code=201)
 def register_inventory_exit(
     exit_request: InventoryExitCreate,
-    db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[Usuario, Depends(get_current_user)],
+    db: Annotated[Session, DB_DEPENDENCY],
+    current_user: Annotated[Usuario, CURRENT_USER_DEPENDENCY],
     idempotency_key: Annotated[
         str | None, Header(alias="Idempotency-Key", min_length=1, max_length=255)
     ] = None,
@@ -59,8 +59,8 @@ def _register_inventory_exit(
             if existing is not None:
                 expires_at = existing.expires_at
                 if expires_at.tzinfo is None:
-                    expires_at = expires_at.replace(tzinfo=timezone.utc)
-                if expires_at > datetime.now(timezone.utc):
+                    expires_at = expires_at.replace(tzinfo=UTC)
+                if expires_at > datetime.now(UTC):
                     if (
                         existing.request_hash != request_hash
                         or existing.route != EXIT_ROUTE
@@ -85,7 +85,7 @@ def _register_inventory_exit(
                 status_code=404, detail="Producto inexistente o inactivo"
             )
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         if key:
             existing = (
                 db.query(IdempotencyKey).filter(IdempotencyKey.key == key).first()
@@ -93,7 +93,7 @@ def _register_inventory_exit(
             if existing is not None:
                 expires_at = existing.expires_at
                 if expires_at.tzinfo is None:
-                    expires_at = expires_at.replace(tzinfo=timezone.utc)
+                    expires_at = expires_at.replace(tzinfo=UTC)
                 if expires_at <= now:
                     db.delete(existing)
                     db.flush()
@@ -187,8 +187,8 @@ def _register_inventory_exit(
                     if existing is not None:
                         expires_at = existing.expires_at
                         if expires_at.tzinfo is None:
-                            expires_at = expires_at.replace(tzinfo=timezone.utc)
-                        if expires_at <= datetime.now(timezone.utc):
+                            expires_at = expires_at.replace(tzinfo=UTC)
+                        if expires_at <= datetime.now(UTC):
                             if retry_expired:
                                 return _register_inventory_exit(
                                     exit_request,
