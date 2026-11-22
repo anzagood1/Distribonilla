@@ -116,7 +116,7 @@ jobs:
             -Dsonar.organization=anzagood1
             -Dsonar.projectKey=anzagood1_Distribonilla
             -Dsonar.projectName=Distribonilla
-            -Dsonar.coverage.exclusions=frontend/tests/**
+            -Dsonar.coverage.exclusions=frontend/tests/**,backend/alembic/**
             -Dsonar.javascript.lcov.reportPaths=frontend/coverage/lcov.info
             ${{ env.SONAR_PYTHON_ARGS }}
             -Dsonar.sourceEncoding=UTF-8

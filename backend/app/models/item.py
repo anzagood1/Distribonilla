@@ -1,16 +1,70 @@
-from sqlalchemy import Column, Integer, String, Float, Text, Boolean  # type: ignore[reportMissingImports]
-from app.db.base import (
-    Base,
-)  # Asegúrate de tener tu Base = declarative_base() en db/base.py
+from sqlalchemy import (
+    BigInteger,
+    Boolean,
+    CheckConstraint,
+    Column,
+    DateTime,
+    FetchedValue,
+    ForeignKey,
+    Identity,
+    Index,
+    Integer,
+    Numeric,
+    Text,
+    func,
+    text,
+)
+from sqlalchemy.orm import relationship
+
+from app.db.base import Base
+
+
+class Categoria(Base):
+    __tablename__ = "categorias"
+
+    id = Column(
+        BigInteger().with_variant(Integer, "sqlite"), Identity(), primary_key=True
+    )
+    nombre = Column(Text, nullable=False, unique=True)
+
+    productos = relationship("Item", back_populates="categoria")
 
 
 class Item(Base):
-    __tablename__ = "items"
+    __tablename__ = "productos"
+    __table_args__ = (
+        CheckConstraint("precio_unitario > 0", name="productos_precio_unitario_check"),
+        CheckConstraint("stock_actual >= 0", name="productos_stock_actual_check"),
+        CheckConstraint("stock_minimo >= 0", name="productos_stock_minimo_check"),
+        Index("idx_productos_categoria", "categoria_id"),
+        Index(
+            "idx_productos_nombre",
+            text("to_tsvector('spanish'::regconfig, nombre)"),
+            postgresql_using="gin",
+        ).ddl_if(dialect="postgresql"),
+    )
 
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(150), index=True, nullable=False)
-    description = Column(Text, nullable=True)
-    sku = Column(String(50), unique=True, index=True, nullable=False)
-    price = Column(Float, nullable=False)
-    stock = Column(Integer, default=0, nullable=False)
-    is_active = Column(Boolean, default=True)
+    id = Column(
+        BigInteger().with_variant(Integer, "sqlite"), Identity(), primary_key=True
+    )
+    codigo = Column(Text, nullable=False, unique=True, server_default=FetchedValue())
+    nombre = Column(Text, nullable=False)
+    descripcion = Column(Text, nullable=True)
+    categoria_id = Column(BigInteger, ForeignKey("categorias.id"), nullable=True)
+    precio_unitario = Column(Numeric, nullable=False)
+    stock_actual = Column(Integer, nullable=False, default=0, server_default="0")
+    stock_minimo = Column(Integer, nullable=False, default=0, server_default="0")
+    aplica_iva = Column(Boolean, nullable=False, default=True, server_default="true")
+    activo = Column(Boolean, nullable=False, default=True, server_default="true")
+    talla = Column(Text, nullable=True)
+    creado_en = Column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    actualizado_en = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        onupdate=func.now(),
+    )
+
+    categoria = relationship("Categoria", back_populates="productos")
