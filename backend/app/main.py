@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.endpoints import auth, inventory
+from app.api.endpoints import auth, inventory, inventory_exits
 
 app = FastAPI(title="API Distribuidora")
 
@@ -10,9 +10,12 @@ app.add_middleware(
     allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["Authorization", "Content-Type"],
+    allow_headers=["Authorization", "Content-Type", "Idempotency-Key"],
 )
 
 # Prefijo /api/v1 es una buena práctica de arquitectura
 app.include_router(inventory.router, prefix="/api/v1/inventory", tags=["Inventory"])
+app.include_router(
+    inventory_exits.router, prefix="/api/v1/inventory", tags=["Inventory"]
+)
 app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
