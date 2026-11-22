@@ -87,3 +87,23 @@ def test_tc_apl02_put_unregistered_user_returns_403(client, monkeypatch):
     listed = client.get(URL).json()
     item = next(product for product in listed if product["id"] == item_id)
     assert item["precio_unitario"] == 24.99
+
+
+def test_prod_api_get_and_put_expose_low_stock_flag(client):
+    item_id = client.post(URL, json=PRODUCT).json()["id"]
+
+    app.dependency_overrides[get_current_user] = lambda: Usuario(id=7, activo=True)
+    try:
+        response = client.put(
+            f"{URL}{item_id}",
+            json={"stock_minimo": 6},
+        )
+        assert response.status_code == 200
+        assert response.json()["stock_bajo"] is True
+    finally:
+        app.dependency_overrides.pop(get_current_user, None)
+
+    item = next(
+        product for product in client.get(URL).json() if product["id"] == item_id
+    )
+    assert item["stock_bajo"] is True
