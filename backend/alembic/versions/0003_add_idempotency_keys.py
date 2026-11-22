@@ -51,6 +51,5 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    bind = op.get_bind()
-    if inspect(bind).has_table("idempotency_keys"):
-        op.drop_table("idempotency_keys")
+    """No-op: preserve idempotency records because the table may predate migration 0003."""
+    pass
