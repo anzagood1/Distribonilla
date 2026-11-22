@@ -1,38 +1,35 @@
-export type LoginValues = { email: string; password: string }
-export type LoginValidationResult = LoginValues & {
-  errors: { email?: string; password?: string }
-}
-
-type LoginValidationOptions = {
-  locale?: 'en' | 'es'
-  emailValidity?: { badInput: boolean; typeMismatch: boolean }
-}
-
-function hasBasicEmailFormat(email: string): boolean {
-  const atIndex = email.indexOf('@')
-  if (atIndex <= 0 || atIndex !== email.lastIndexOf('@') || /\s/.test(email)) {
-    return false
+export function classifyLoginError(status: unknown, code?: unknown) {
+  switch (status) {
+    case 401:
+      return 'invalid_credentials'
+    case 422:
+      return 'invalid_request'
+    case 429:
+      return 'rate_limited'
+    case 503:
+      return 'unavailable'
+    default:
+      return status === undefined && code === 'ERR_NETWORK' ? 'network' : 'unexpected'
   }
-
-  const domainDot = email.indexOf('.', atIndex + 2)
-  return domainDot !== -1 && domainDot < email.length - 1
 }
 
-export function validateLogin(
-  input: LoginValues,
-  { locale = 'en', emailValidity }: LoginValidationOptions = {},
-): LoginValidationResult {
-  const email = input.email.trim()
-  const errors: LoginValidationResult['errors'] = {}
+export function getLoginErrorMessage(category: unknown, locale: 'en' | 'es' = 'en'): string {
   const spanish = locale === 'es'
+  switch (category) {
+    case 'invalid_credentials':
+      return spanish ? 'Correo o contraseña incorrectos.' : 'Invalid email or password.'
+    case 'invalid_request':
+      if (spanish) return 'Revisa el correo y la contraseña.'
+      break
+    case 'rate_limited':
+      return spanish
+        ? 'Demasiados intentos. Inténtalo de nuevo más tarde.'
+        : 'Too many attempts. Please try again later.'
+    case 'network':
+      return spanish ? 'No se pudo conectar. Inténtalo de nuevo.' : 'Unable to connect. Please try again.'
+    case 'unavailable':
+      return spanish ? 'Servicio no disponible. Inténtalo de nuevo.' : 'Service unavailable. Please try again.'
+  }
 
-  if (!email) {
-    errors.email = spanish ? 'Ingresa tu correo electrónico.' : 'Email is required.'
-  } else if (emailValidity?.badInput || emailValidity?.typeMismatch || !hasBasicEmailFormat(email)) {
-    errors.email = spanish ? 'Ingresa un correo electrónico válido.' : 'Enter a valid email address.'
-  }
-  if (!input.password) {
-    errors.password = spanish ? 'Ingresa tu contraseña.' : 'Password is required.'
-  }
-  return { email, password: input.password, errors }
+  return spanish ? 'No fue posible iniciar sesión.' : 'Unable to sign in. Please try again.'
 }
