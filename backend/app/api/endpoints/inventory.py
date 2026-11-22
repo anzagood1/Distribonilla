@@ -1,19 +1,19 @@
-from datetime import datetime, timedelta, timezone
 import hashlib
 import json
 import logging
-from typing import Annotated, List
+from datetime import UTC, datetime, timedelta
+from typing import Annotated
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
+from fastapi import APIRouter, Header, HTTPException, Query, status
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from app.api.dependencies import get_current_user, get_db
-from app.schemas.item import ItemCreate, ItemUpdate, ItemResponse
-from app.schemas.inventory import InventoryEntryCreate, InventoryEntryResponse
+from app.api.dependencies import CURRENT_USER_DEPENDENCY, DB_DEPENDENCY
+from app.crud import crud_item
 from app.models.inventory import IdempotencyKey, MovimientoInventario, Usuario
 from app.models.item import Item
-from app.crud import crud_item
+from app.schemas.inventory import InventoryEntryCreate, InventoryEntryResponse
+from app.schemas.item import ItemCreate, ItemResponse, ItemUpdate
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -22,15 +22,19 @@ logger = logging.getLogger(__name__)
 @router.post(
     "/items/", response_model=ItemResponse, status_code=status.HTTP_201_CREATED
 )
-def create_item(item: ItemCreate, db: Session = Depends(get_db)):
+def create_item(
+    item: ItemCreate,
+    db: Session = DB_DEPENDENCY,
+    current_user: Usuario = CURRENT_USER_DEPENDENCY,
+):
     """
     Registra un nuevo producto en el catálogo.
     """
     return crud_item.create_item(db=db, item=item)
 
 
-@router.get("/items/", response_model=List[ItemResponse])
-def read_items(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+@router.get("/items/", response_model=list[ItemResponse])
+def read_items(skip: int = 0, limit: int = 100, db: Session = DB_DEPENDENCY):
     """
     Lista los productos del catálogo con paginación.
     """
@@ -38,11 +42,11 @@ def read_items(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     return items
 
 
-@router.get("/items/low-stock/", response_model=List[ItemResponse])
+@router.get("/items/low-stock/", response_model=list[ItemResponse])
 def read_low_stock_items(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
-    db: Session = Depends(get_db),
+    db: Session = DB_DEPENDENCY,
 ):
     """
     Lista los productos activos con stock bajo (stock_actual <= stock_minimo),
@@ -55,8 +59,8 @@ def read_low_stock_items(
 def update_item(
     item_id: int,
     item_update: ItemUpdate,
-    db: Session = Depends(get_db),
-    current_user: Usuario = Depends(get_current_user),
+    db: Session = DB_DEPENDENCY,
+    current_user: Usuario = CURRENT_USER_DEPENDENCY,
 ):
     """
     Edita la información de un producto existente.
@@ -77,8 +81,8 @@ def update_item(
 )
 def register_inventory_entry(
     entry: InventoryEntryCreate,
-    db: Session = Depends(get_db),
-    current_user: Usuario = Depends(get_current_user),
+    db: Session = DB_DEPENDENCY,
+    current_user: Usuario = CURRENT_USER_DEPENDENCY,
     idempotency_key: Annotated[
         str | None,
         Header(alias="Idempotency-Key", min_length=1, max_length=255),
@@ -115,12 +119,12 @@ def register_inventory_entry(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="No fue posible validar la clave de idempotencia",
             )
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         if existing is not None:
             expires_at = existing.expires_at
             if expires_at is not None and expires_at.tzinfo is None:
-                expires_at = expires_at.replace(tzinfo=timezone.utc)
+                expires_at = expires_at.replace(tzinfo=UTC)
 
             if expires_at is not None and expires_at <= now:
                 db.delete(existing)
@@ -130,7 +134,7 @@ def register_inventory_entry(
                 or existing.route != "/api/v1/inventory/entries"
                 or existing.user_id != current_user.id
             ):
-                logging.error(
+                logger.error(
                     "Idempotency key conflict: %s",
                     {"key": key, "request_hash": request_hash},
                 )
@@ -150,7 +154,7 @@ def register_inventory_entry(
         cantidad=entry.cantidad,
         motivo=entry.motivo,
         notas=entry.notas,
-        fecha=datetime.now(timezone.utc),
+        fecha=datetime.now(UTC),
         usuario_id=current_user.id,
         venta_id=None,
         stock_anterior=stock_anterior,
@@ -159,7 +163,7 @@ def register_inventory_entry(
 
     try:
         producto.stock_actual = stock_resultante
-        producto.actualizado_en = datetime.now(timezone.utc)
+        producto.actualizado_en = datetime.now(UTC)
         db.add(movimiento)
         db.flush()
 
@@ -185,8 +189,8 @@ def register_inventory_entry(
                     response_body=response_body,
                     movement_id=movimiento.id,
                     user_id=current_user.id,
-                    created_at=datetime.now(timezone.utc),
-                    expires_at=datetime.now(timezone.utc) + timedelta(hours=24),
+                    created_at=datetime.now(UTC),
+                    expires_at=datetime.now(UTC) + timedelta(hours=24),
                 )
             )
 

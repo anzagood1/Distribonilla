@@ -191,8 +191,8 @@ def test_prod_duplicate_category_name_is_rejected(db_session, categoria):
     [
         ("stock_actual", -1),
         ("stock_minimo", -1),
-        ("precio_unitario", Decimal("0")),
-        ("precio_unitario", Decimal("-5")),
+        ("precio_unitario", Decimal(0)),
+        ("precio_unitario", Decimal(-5)),
     ],
 )
 def test_prod_database_rejects_invalid_values(db_session, field, value):

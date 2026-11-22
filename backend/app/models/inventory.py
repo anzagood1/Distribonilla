@@ -1,4 +1,5 @@
 from sqlalchemy import (
+    JSON,
     BigInteger,
     Boolean,
     Column,
@@ -6,7 +7,6 @@ from sqlalchemy import (
     Enum,
     ForeignKey,
     Integer,
-    JSON,
     Text,
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID

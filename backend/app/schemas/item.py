@@ -84,7 +84,7 @@ class ItemUpdate(BaseModel):
 
     @field_validator("stock_minimo")
     @classmethod
-    def _stock_minimo_no_nulo(cls, value: Optional[int]) -> int:
+    def _stock_minimo_no_nulo(cls, value: int | None) -> int:
         # Solo se ejecuta si el cliente envía el campo: null explícito no vale
         if value is None:
             raise ValueError("stock_minimo no puede ser nulo; use 0 si no aplica")
@@ -94,7 +94,6 @@ class ItemUpdate(BaseModel):
 class ItemResponse(ItemBase):
     id: int
     codigo: str
-    stock_bajo: bool
     creado_en: datetime
     actualizado_en: datetime
 
