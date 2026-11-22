@@ -27,9 +27,65 @@ def test_prod_api_02_invalid_price_returns_422(client):
 
 
 def test_prod_api_03_update_size(client):
+
+
+    app.dependency_overrides[get_current_user] = lambda: Usuario(id=7, activo=True)
+    try:
+        item_id = client.post(URL, json=PRODUCT).json()["id"]
+
+        response = client.put(f"{URL}{item_id}", json={"talla": "34"})
+        assert response.status_code == 200
+        assert response.json()["talla"] == "34"
+        assert response.json()["nombre"] == "Pantalón jean azul"
+    finally:
+        app.dependency_overrides.pop(get_current_user, None)
+
+
+def test_tc_apl02_put_without_token_returns_401(client):
     item_id = client.post(URL, json=PRODUCT).json()["id"]
 
-    response = client.put(f"{URL}{item_id}", json={"talla": "34"})
-    assert response.status_code == 200
-    assert response.json()["talla"] == "34"
-    assert response.json()["nombre"] == "Pantalón jean azul"
+    response = client.put(
+        f"{URL}{item_id}",
+        json={"precio_unitario": -1},
+    )
+    assert response.status_code == 401
+
+
+def test_tc_apl02_put_negative_price_by_authorized_user_returns_422(client):
+    from app.api.dependencies import get_current_user
+    from app.main import app
+    from app.models.inventory import Usuario
+
+    item_id = client.post(URL, json=PRODUCT).json()["id"]
+
+    app.dependency_overrides[get_current_user] = lambda: Usuario(id=7, activo=True)
+    try:
+        response = client.put(
+            f"{URL}{item_id}",
+            json={"precio_unitario": -1},
+        )
+        assert response.status_code == 422
+    finally:
+        app.dependency_overrides.pop(get_current_user, None)
+
+
+def test_tc_apl02_put_unregistered_user_returns_403(client, monkeypatch):
+    import uuid
+    from unittest.mock import Mock
+
+    fake = Mock()
+    fake.auth.get_user.return_value.user.id = str(uuid.uuid4())
+    monkeypatch.setattr("app.api.dependencies.create_supabase_client", lambda: fake)
+
+    item_id = client.post(URL, json=PRODUCT).json()["id"]
+
+    response = client.put(
+        f"{URL}{item_id}",
+        json={"precio_unitario": -1},
+        headers={"Authorization": "Bearer simulated"},
+    )
+    assert response.status_code == 403
+
+    listed = client.get(URL).json()
+    item = next(product for product in listed if product["id"] == item_id)
+    assert item["precio_unitario"] == 24.99

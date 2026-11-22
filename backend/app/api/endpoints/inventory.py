@@ -39,7 +39,12 @@ def read_items(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
 
 
 @router.put("/items/{item_id}", response_model=ItemResponse)
-def update_item(item_id: int, item_update: ItemUpdate, db: Session = Depends(get_db)):
+def update_item(
+    item_id: int,
+    item_update: ItemUpdate,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user),
+):
     """
     Edita la información de un producto existente.
     """
