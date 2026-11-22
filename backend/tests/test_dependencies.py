@@ -53,7 +53,9 @@ def test_get_current_user_rejects_http_error(monkeypatch):
 
 def test_get_current_user_rejects_invalid_uuid(monkeypatch):
     client = Mock()
-    client.auth.get_user.return_value = SimpleNamespace(user=SimpleNamespace(id="not-a-uuid"))
+    client.auth.get_user.return_value = SimpleNamespace(
+        user=SimpleNamespace(id="not-a-uuid")
+    )
     monkeypatch.setattr("app.api.dependencies.create_supabase_client", lambda: client)
 
     credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials="token")
