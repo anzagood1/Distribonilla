@@ -2,6 +2,11 @@
   font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   color: #202124;
   background: #f8f9fa;
+  --navy-900: #123e66;
+  --navy-800: #194b78;
+  --navy-700: #24618e;
+  --navy-100: #eaf2f8;
+  --navy-50: #f5f8fb;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -37,7 +42,9 @@ button {
   display: grid;
   place-items: center;
   padding: 24px;
-  background: #f8f9fa;
+  background:
+    radial-gradient(circle at 20% 10%, rgba(18, 62, 102, 0.10), transparent 22rem),
+    #f7f7fa;
 }
 
 .login-card {
@@ -66,7 +73,7 @@ button {
   place-items: center;
   border-radius: 50%;
   color: #fff;
-  background: #1a73e8;
+  background: linear-gradient(135deg, var(--navy-700), var(--navy-900));
   font-size: 17px;
 }
 
@@ -121,8 +128,8 @@ button {
 }
 
 .field-group input:focus {
-  border-color: #1a73e8;
-  box-shadow: 0 0 0 3px rgba(26, 115, 232, .12);
+  border-color: var(--navy-700);
+  box-shadow: 0 0 0 3px rgba(36, 97, 142, .12);
 }
 
 .field-group input:disabled {
@@ -157,7 +164,7 @@ button {
 }
 
 .password-toggle:focus-visible {
-  outline: 2px solid #1a73e8;
+  outline: 2px solid var(--navy-700);
 }
 
 .auth-error {
@@ -177,14 +184,14 @@ button {
   border: 0;
   border-radius: 10px;
   color: #fff;
-  background: #1a73e8;
+  background: var(--navy-900);
   font-weight: 700;
   transition: background 160ms, box-shadow 160ms, transform 160ms;
 }
 
 .primary-button:hover:not(:disabled) {
-  background: #1765cc;
-  box-shadow: 0 4px 12px rgba(26, 115, 232, .22);
+  background: var(--navy-800);
+  box-shadow: 0 4px 12px rgba(18, 62, 102, .20);
 }
 
 .primary-button:active:not(:disabled) {
@@ -218,7 +225,9 @@ button {
 
 .home-page {
   min-height: 100vh;
-  background: #f8f9fa;
+  background:
+    radial-gradient(circle at 85% 0%, rgba(18, 62, 102, 0.09), transparent 25rem),
+    #f7f7fa;
 }
 
 .home-header {
@@ -241,7 +250,7 @@ button {
   place-items: center;
   border-radius: 50%;
   color: #fff;
-  background: #1a73e8;
+  background: linear-gradient(135deg, var(--navy-700), var(--navy-900));
   font-weight: 700;
 }
 
@@ -368,6 +377,110 @@ button {
   overflow-wrap: anywhere;
 }
 
+.home-header-actions,
+.home-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.home-nav button {
+  height: 40px;
+  border: 0;
+  border-radius: 10px;
+  padding: 0 12px;
+  color: #5f6368;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.home-nav button:hover {
+  color: var(--navy-900);
+  background: var(--navy-100);
+}
+
+.home-dashboard {
+  width: min(760px, calc(100% - 36px));
+  text-align: left;
+}
+
+.dashboard-heading {
+  text-align: center;
+}
+
+.home-dashboard .eyebrow {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--navy-700);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.home-dashboard .authenticated-email {
+  width: 100%;
+  margin: 20px 0;
+  text-align: center;
+}
+
+.home-action-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.home-action-card {
+  min-height: 150px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 14px;
+  border: 1px solid #e4e6ea;
+  border-radius: 14px;
+  padding: 18px;
+  color: #3c4043;
+  background: #fff;
+  text-align: left;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.home-action-card:hover {
+  border-color: #b9cad8;
+  box-shadow: 0 10px 24px rgba(60, 64, 67, 0.09);
+  transform: translateY(-2px);
+}
+
+.home-action-card > span:nth-child(2) {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.home-action-card small {
+  color: #80868b;
+  line-height: 1.4;
+}
+
+.home-action-icon {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  color: var(--navy-900);
+  background: var(--navy-100);
+}
+
+.home-action-icon-accent {
+  color: var(--navy-900);
+  background: #e2edf5;
+}
+
 @media (max-width: 480px) {
   .login-page {
     align-items: start;
@@ -386,5 +499,29 @@ button {
 
   .welcome-card {
     margin-top: 36px;
+  }
+
+  .home-nav {
+    display: none;
+  }
+
+  .home-action-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .home-action-card:hover,
+  .primary-button:active:not(:disabled) {
+    transform: none;
   }
 }

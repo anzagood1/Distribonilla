@@ -19,3 +19,16 @@ export interface ProductCreate {
   stock_minimo: number;
   aplica_iva: boolean;
 }
+
+export interface InventoryMovement {
+  id: number;
+  producto_id: number;
+  tipo: 'entrada' | 'salida';
+  cantidad: number;
+  motivo: string;
+  notas: string | null;
+  fecha: string;
+  usuario_id: number;
+  stock_anterior: number;
+  stock_resultante: number;
+}

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ArrowLeft, Home } from 'lucide-react';
 import ProductForm from '../components/ProductForm';
 import { createProduct } from '../services/productService';
 import type { ProductCreate } from '../types/product';
@@ -28,8 +29,16 @@ function CreateProduct() {
   };
 
   return (
-    <main className="products-page">
-      <div className="page-header">
+    <main className="products-page create-product-page">
+      <header className="create-page-header">
+        <button type="button" onClick={() => void navigate('/home')}>
+          <Home size={16} /> Inicio
+        </button>
+        <button type="button" onClick={() => void navigate('/productos')}>
+          <ArrowLeft size={16} /> Volver a productos
+        </button>
+      </header>
+      <div className="page-header create-product-header">
         <div>
           <button
             className="back-button"

@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TC-INV-15</title>
+  <style>
+    body { margin: 0; background: #eef2f7; color: #172033; font-family: Arial, sans-serif; }
+    main { max-width: 1100px; margin: 24px auto; }
+    header { display: flex; justify-content: space-between; align-items: center; padding: 24px; border-radius: 12px; background: #123e66; color: white; }
+    .status { padding: 8px 12px; border-radius: 999px; font-weight: 700; }
+    .pass { background: #1b7f58; } .fail { background: #b42318; }
+    .card { margin-top: 18px; border-radius: 10px; padding: 22px; background: white; box-shadow: 0 4px 16px #0001; }
+    .info { background: #eaf6fb; border-left: 4px solid #138aa5; }
+    .movements, .requests { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    .movement, .request { border: 1px solid #dfe4eb; border-radius: 9px; padding: 16px; }
+    dl { display: grid; grid-template-columns: 120px 1fr; gap: 8px; margin: 12px 0 0; }
+    dt { color: #667085; } dd { margin: 0; font-weight: 700; }
+    pre { overflow: auto; max-height: 420px; background: #f7f8fa; padding: 12px; }
+    @media (max-width: 700px) { main { margin: 12px; } .movements, .requests { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div>
+      <h1>TC-INV-15</h1>
+      <p>Evidencia registrada — Sprint 2</p>
+    </div>
+    <span class="status pass">PASS · LOCAL</span>
+  </header>
+  <section class="card info">
+    <strong>Información de evidencia</strong>
+    <p>Fecha: 2026-11-22T22:40:03.533829+00:00</p>
+    <p>Base: aws-1-us-west-2.pooler.supabase.com:5432</p>
+    <p>Producto: 1</p>
+  </section>
+  <section class="card">
+    <h2>Resultado esperado</h2>
+    <p>Ambos movimientos deben persistir con fechas, cantidades, tipo y stock anterior/resultante consistentes.</p>
+  </section>
+  <section class="card">
+    <h2>Peticiones y respuestas reales</h2>
+    <div class="requests">
+        <article class="request">
+          <h3>Solicitud 1 - Entrada</h3>
+          <p>HTTP 201</p>
+          <pre>{
+  &quot;name&quot;: &quot;Solicitud 1 - Entrada&quot;,
+  &quot;status&quot;: 201,
+  &quot;route&quot;: &quot;/api/v1/inventory/entries&quot;,
+  &quot;method&quot;: &quot;POST&quot;,
+  &quot;response&quot;: {
+    &quot;id&quot;: 16,
+    &quot;producto_id&quot;: 1,
+    &quot;tipo&quot;: &quot;entrada&quot;,
+    &quot;cantidad&quot;: 5,
+    &quot;motivo&quot;: &quot;Compra de prueba&quot;,
+    &quot;notas&quot;: &quot;Entrada TC-INV-15-ac6ffc7c&quot;,
+    &quot;fecha&quot;: &quot;2026-11-22T22:39:56.809282Z&quot;,
+    &quot;usuario_id&quot;: 4,
+    &quot;stock_anterior&quot;: 54,
+    &quot;stock_resultante&quot;: 59
+  }
+}</pre>
+        </article>
+        
+        <article class="request">
+          <h3>Solicitud 2 - Salida</h3>
+          <p>HTTP 201</p>
+          <pre>{
+  &quot;name&quot;: &quot;Solicitud 2 - Salida&quot;,
+  &quot;status&quot;: 201,
+  &quot;route&quot;: &quot;/api/v1/inventory/exits&quot;,
+  &quot;method&quot;: &quot;POST&quot;,
+  &quot;response&quot;: {
+    &quot;id&quot;: 17,
+    &quot;producto_id&quot;: 1,
+    &quot;tipo&quot;: &quot;salida&quot;,
+    &quot;cantidad&quot;: 2,
+    &quot;motivo&quot;: &quot;ajuste&quot;,
+    &quot;notas&quot;: &quot;Salida TC-INV-15-ac6ffc7c&quot;,
+    &quot;fecha&quot;: &quot;2026-11-22T22:39:59.160024Z&quot;,
+    &quot;usuario_id&quot;: 4,
+    &quot;stock_anterior&quot;: 59,
+    &quot;stock_resultante&quot;: 57
+  }
+}</pre>
+        </article>
+        </div>
+  </section>
+  <section class="card">
+    <h2>Historial persistido</h2>
+    <div class="movements">
+        <article class="movement">
+          <strong>ENTRADA</strong>
+          <dl>
+            <dt>Cantidad</dt><dd>5</dd>
+            <dt>Stock anterior</dt><dd>54</dd>
+            <dt>Stock resultante</dt><dd>59</dd>
+            <dt>Fecha</dt><dd>2026-11-22T22:39:56.809282+00:00</dd>
+            <dt>Notas</dt><dd>Entrada TC-INV-15-ac6ffc7c</dd>
+          </dl>
+        </article>
+        
+        <article class="movement">
+          <strong>SALIDA</strong>
+          <dl>
+            <dt>Cantidad</dt><dd>2</dd>
+            <dt>Stock anterior</dt><dd>59</dd>
+            <dt>Stock resultante</dt><dd>57</dd>
+            <dt>Fecha</dt><dd>2026-11-22T22:39:59.160024+00:00</dd>
+            <dt>Notas</dt><dd>Salida TC-INV-15-ac6ffc7c</dd>
+          </dl>
+        </article>
+        </div>
+  </section>
+</main>
+</body>
+</html>

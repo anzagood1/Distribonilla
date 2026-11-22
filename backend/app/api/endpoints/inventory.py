@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 import hashlib
 import json
 import logging
@@ -36,6 +36,45 @@ def read_items(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     """
     items = crud_item.get_items(db, skip=skip, limit=limit)
     return items
+
+
+@router.get(
+    "/items/{item_id}/movements",
+    response_model=List[InventoryEntryResponse],
+)
+def read_item_movements(
+    item_id: int,
+    db: Session = Depends(get_db),
+    from_date: date | None = None,
+    to_date: date | None = None,
+):
+    item = db.query(Item).filter(Item.id == item_id).first()
+    if item is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Ítem no encontrado",
+        )
+
+    if from_date and to_date and from_date > to_date:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="La fecha inicial no puede ser posterior a la fecha final",
+        )
+
+    query = db.query(MovimientoInventario).filter(
+        MovimientoInventario.producto_id == item_id
+    )
+    if from_date:
+        query = query.filter(
+            MovimientoInventario.fecha
+            >= datetime.combine(from_date, datetime.min.time())
+        )
+    if to_date:
+        end = datetime.combine(to_date + timedelta(days=1), datetime.min.time())
+        query = query.filter(MovimientoInventario.fecha < end)
+
+    movements = query.order_by(MovimientoInventario.fecha.asc()).all()
+    return movements
 
 
 @router.put("/items/{item_id}", response_model=ItemResponse)

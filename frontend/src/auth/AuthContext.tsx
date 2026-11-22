@@ -8,11 +8,10 @@ import { AuthContext } from './AuthStore'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(() => Boolean(supabase))
 
   useEffect(() => {
     if (!supabase) {
-      setLoading(false)
       return
     }
 

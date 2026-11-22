@@ -5,6 +5,7 @@ import { HomePage } from './pages/HomePage';
 import { LoginPage } from './pages/LoginPage';
 import ProductCatalog from './pages/ProductCatalog';
 import CreateProduct from './pages/CreateProduct';
+import ProductKardex from './pages/ProductKardex';
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
           <Route path="/home" element={<HomePage />} />
           <Route path="/productos" element={<ProductCatalog />} />
           <Route path="/productos/nuevo" element={<CreateProduct />} />
+          <Route path="/productos/:productId/kardex" element={<ProductKardex />} />
         </Route>
 
         <Route path="/" element={<Navigate to="/productos" replace />} />

@@ -1,0 +1,68 @@
+{
+  "case_id": "TC-INV-15",
+  "group": "GRUPO5-14",
+  "hu": "HU13",
+  "requirement": "R27",
+  "result": "Sprint 2",
+  "timestamp": "2026-11-22T22:40:03.533829+00:00",
+  "database_host": "aws-1-us-west-2.pooler.supabase.com:5432",
+  "product_id": 1,
+  "pass": true,
+  "expected": "Ambos movimientos deben persistir con fechas, cantidades, tipo y stock anterior/resultante consistentes.",
+  "requests": [
+    {
+      "name": "Solicitud 1 - Entrada",
+      "status": 201,
+      "route": "/api/v1/inventory/entries",
+      "method": "POST",
+      "response": {
+        "id": 16,
+        "producto_id": 1,
+        "tipo": "entrada",
+        "cantidad": 5,
+        "motivo": "Compra de prueba",
+        "notas": "Entrada TC-INV-15-ac6ffc7c",
+        "fecha": "2026-11-22T22:39:56.809282Z",
+        "usuario_id": 4,
+        "stock_anterior": 54,
+        "stock_resultante": 59
+      }
+    },
+    {
+      "name": "Solicitud 2 - Salida",
+      "status": 201,
+      "route": "/api/v1/inventory/exits",
+      "method": "POST",
+      "response": {
+        "id": 17,
+        "producto_id": 1,
+        "tipo": "salida",
+        "cantidad": 2,
+        "motivo": "ajuste",
+        "notas": "Salida TC-INV-15-ac6ffc7c",
+        "fecha": "2026-11-22T22:39:59.160024Z",
+        "usuario_id": 4,
+        "stock_anterior": 59,
+        "stock_resultante": 57
+      }
+    }
+  ],
+  "database_movements": [
+    {
+      "tipo": "entrada",
+      "cantidad": 5,
+      "fecha": "2026-11-22T22:39:56.809282+00:00",
+      "notas": "Entrada TC-INV-15-ac6ffc7c",
+      "stock_anterior": 54,
+      "stock_resultante": 59
+    },
+    {
+      "tipo": "salida",
+      "cantidad": 2,
+      "fecha": "2026-11-22T22:39:59.160024+00:00",
+      "notas": "Salida TC-INV-15-ac6ffc7c",
+      "stock_anterior": 59,
+      "stock_resultante": 57
+    }
+  ]
+}
