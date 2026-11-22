@@ -1,0 +1,78 @@
+name: Cloudflare Pages deployment
+
+on:
+  workflow_run:
+    workflows: [Continuous Integration, SonarCloud Analysis]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: cloudflare-pages-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    # Deliberately disabled until the team explicitly authorizes activation.
+    if: ${{ false && vars.CLOUDFLARE_PAGES_DEPLOY_ENABLED == 'true' && github.event.workflow_run.event == 'push' && github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    env:
+      TARGET_SHA: ${{ github.event.workflow_run.head_sha }}
+
+    steps:
+      - name: Checkout the tested commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: frontend/.node-version
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Build frontend
+        working-directory: frontend
+        env:
+          VITE_API_URL: ${{ vars.VITE_API_URL }}
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          : "${VITE_API_URL:?VITE_API_URL is required}"
+          : "${VITE_SUPABASE_URL:?VITE_SUPABASE_URL is required}"
+          : "${VITE_SUPABASE_PUBLISHABLE_KEY:?VITE_SUPABASE_PUBLISHABLE_KEY is required}"
+          npm ci
+          npm run build
+          test -s dist/index.html
+
+      - name: Verify main and quality checks for the tested commit
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          current_sha=$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq .sha)
+          if [[ "$current_sha" != "$TARGET_SHA" ]]; then
+            echo 'Main has moved; refusing to deploy an outdated commit.'
+            exit 1
+          fi
+          for workflow in ci.yml sonarqube.yml; do
+            result=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/$workflow/runs?branch=main&event=push&head_sha=$TARGET_SHA&per_page=100" |
+              jq -r --arg sha "$TARGET_SHA" '[.workflow_runs[] | select(.head_sha == $sha and .event == "push")] | sort_by(.created_at, .id) | last | if .status == "completed" and .conclusion == "success" then "success" else "not-success" end')
+            if [[ "$result" != success ]]; then
+              echo "Required workflow $workflow is missing, incomplete, or failed for this commit."
+              exit 1
+            fi
+          done
+
+      - name: Deploy to the existing Pages project
+        uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0 # v4.1.3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy frontend/dist --project-name=distribonilla-web --branch=main
