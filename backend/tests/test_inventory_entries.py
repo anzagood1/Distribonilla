@@ -6,7 +6,7 @@ from unittest.mock import Mock
 import pytest
 from fastapi import HTTPException
 from pydantic import ValidationError
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 
 from app.api.endpoints.inventory import register_inventory_entry
 from app.models.inventory import IdempotencyKey, MovimientoInventario, Usuario
@@ -192,3 +192,88 @@ def test_same_key_with_different_content_is_conflict():
     assert exc.value.status_code == 409
     assert product.stock_actual == 20
     db.commit.assert_not_called()
+
+
+def test_expired_idempotency_key_is_removed_and_entry_is_registered():
+    product = Item(id=1, activo=True, stock_actual=20)
+    entry = InventoryEntryCreate(
+        producto_id=1,
+        cantidad=5,
+        motivo="Compra",
+    )
+    existing = IdempotencyKey(
+        key="EXPIRED",
+        request_hash=request_hash(entry),
+        route="/api/v1/inventory/entries",
+        response_status=201,
+        response_body={"id": 33},
+        movement_id=33,
+        user_id=7,
+        created_at=datetime.now(timezone.utc) - timedelta(days=2),
+        expires_at=datetime.now(timezone.utc) - timedelta(hours=1),
+    )
+    db = make_idempotent_db(product, existing)
+
+    movement = register_inventory_entry(
+        entry,
+        db,
+        Usuario(id=7, activo=True),
+        idempotency_key="EXPIRED",
+    )
+
+    assert movement.stock_resultante == 25
+    db.delete.assert_called_once_with(existing)
+    db.commit.assert_called_once()
+
+
+def test_idempotency_query_failure_returns_500():
+    product = Item(id=1, activo=True, stock_actual=20)
+    entry = InventoryEntryCreate(producto_id=1, cantidad=5, motivo="Compra")
+
+    item_query = Mock()
+    item_query.filter.return_value = item_query
+    item_query.with_for_update.return_value = item_query
+    item_query.first.return_value = product
+
+    db = Mock()
+    db.query.side_effect = lambda model: (
+        item_query
+        if model is Item
+        else (_ for _ in ()).throw(SQLAlchemyError("query failed"))
+    )
+
+    with pytest.raises(HTTPException) as exc:
+        register_inventory_entry(
+            entry,
+            db,
+            Usuario(id=7, activo=True),
+            idempotency_key="BROKEN",
+        )
+
+    assert exc.value.status_code == 500
+
+
+def test_integrity_error_returns_409():
+    product = Item(id=1, activo=True, stock_actual=20)
+    db = make_db(product)
+    db.flush.side_effect = IntegrityError("insert", {}, Exception("duplicate"))
+    entry = InventoryEntryCreate(producto_id=1, cantidad=5, motivo="Compra")
+
+    with pytest.raises(HTTPException) as exc:
+        register_inventory_entry(entry, db, Usuario(id=7, activo=True))
+
+    assert exc.value.status_code == 409
+    db.rollback.assert_called_once()
+
+
+def test_unexpected_error_returns_500():
+    product = Item(id=1, activo=True, stock_actual=20)
+    db = make_db(product)
+    db.flush.side_effect = RuntimeError("unexpected")
+    entry = InventoryEntryCreate(producto_id=1, cantidad=5, motivo="Compra")
+
+    with pytest.raises(HTTPException) as exc:
+        register_inventory_entry(entry, db, Usuario(id=7, activo=True))
+
+    assert exc.value.status_code == 500
+    db.rollback.assert_called_once()
