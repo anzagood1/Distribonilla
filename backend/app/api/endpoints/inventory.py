@@ -8,7 +8,8 @@ from sqlalchemy.orm import Session
 from app.api.dependencies import get_current_user, get_db
 from app.schemas.item import ItemCreate, ItemUpdate, ItemResponse
 from app.schemas.inventory import InventoryEntryCreate, InventoryEntryResponse
-from app.models.inventory import MovimientoInventario, Producto, Usuario
+from app.models.inventory import MovimientoInventario, Usuario
+from app.models.item import Item
 from app.crud import crud_item
 
 router = APIRouter()
@@ -58,8 +59,8 @@ def register_inventory_entry(
     current_user: Usuario = Depends(get_current_user),
 ):
     producto = (
-        db.query(Producto)
-        .filter(Producto.id == entry.producto_id)
+        db.query(Item)
+        .filter(Item.id == entry.producto_id)
         .with_for_update()
         .first()
     )
