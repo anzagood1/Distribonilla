@@ -4,7 +4,7 @@ import logging
 from datetime import UTC, date, datetime, timedelta
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
+from fastapi import APIRouter, Header, HTTPException, Query, status
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
@@ -50,7 +50,7 @@ def read_items(
 def read_low_stock_items(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
-    db: Session = Depends(get_db),
+    db: Session = DB_DEPENDENCY,
 ):
     """
     Lista los productos activos con stock bajo (stock_actual <= stock_minimo),
@@ -123,8 +123,8 @@ def update_item(
 )
 def register_inventory_entry(
     entry: InventoryEntryCreate,
-    db: Session = Depends(get_db),
-    current_user: Usuario = Depends(get_current_user),
+    db: Session = DB_DEPENDENCY,
+    current_user: Usuario = CURRENT_USER_DEPENDENCY,
     idempotency_key: Annotated[
         str | None,
         Header(alias="Idempotency-Key", min_length=1, max_length=255),

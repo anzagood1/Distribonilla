@@ -68,3 +68,7 @@ class Item(Base):
     )
 
     categoria = relationship("Categoria", back_populates="productos")
+
+    @property
+    def stock_bajo(self) -> bool:
+        return self.stock_actual <= self.stock_minimo

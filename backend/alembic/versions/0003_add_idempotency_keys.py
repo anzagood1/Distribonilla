@@ -5,10 +5,11 @@ Revises: 0002_add_talla
 Create Date: 2026-11-21
 """
 
-from alembic import op
 import sqlalchemy as sa
 from sqlalchemy import inspect
 from sqlalchemy.dialects import postgresql
+
+from alembic import op
 
 revision = "0003"
 down_revision = "0002"
@@ -52,4 +53,3 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     """No-op: preserve idempotency records because the table may predate migration 0003."""
-    pass

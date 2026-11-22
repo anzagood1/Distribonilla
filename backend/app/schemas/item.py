@@ -1,6 +1,6 @@
 from datetime import datetime
 from decimal import Decimal
-from typing import Annotated, Any, Optional
+from typing import Annotated, Any
 
 from pydantic import (
     BaseModel,
@@ -13,7 +13,6 @@ from pydantic import (
 
 from app.services.stock_alerts import es_stock_bajo
 
-
 Precio = Annotated[
     Decimal,
     Field(gt=0, max_digits=12, decimal_places=2),
@@ -21,7 +20,7 @@ Precio = Annotated[
 ]
 
 
-def _normalizar_talla(value: Optional[str]) -> Optional[str]:
+def _normalizar_talla(value: str | None) -> str | None:
     if value is None:
         return None
     value = value.strip().upper()
@@ -30,7 +29,7 @@ def _normalizar_talla(value: Optional[str]) -> Optional[str]:
     return value
 
 
-def _sin_espacios(value: Optional[str]) -> Optional[str]:
+def _sin_espacios(value: str | None) -> str | None:
     """Evita textos que solo contienen espacios (p. ej. nombre '   ')."""
     if value is None:
         return None
@@ -42,10 +41,10 @@ def _sin_espacios(value: Optional[str]) -> Optional[str]:
 
 class ItemBase(BaseModel):
     nombre: str = Field(..., max_length=150)
-    descripcion: Optional[str] = None
-    categoria_id: Optional[int] = Field(None, gt=0)
+    descripcion: str | None = None
+    categoria_id: int | None = Field(None, gt=0)
     precio_unitario: Precio
-    talla: Optional[str] = Field(None, max_length=10, description="S, M, 32...")
+    talla: str | None = Field(None, max_length=10, description="S, M, 32...")
     stock_actual: int = Field(0, ge=0)
     stock_minimo: int = Field(0, ge=0)
     aplica_iva: bool = True
@@ -56,7 +55,7 @@ class ItemBase(BaseModel):
 
 
 class ItemCreate(ItemBase):
-    codigo: Optional[str] = Field(None, max_length=50)
+    codigo: str | None = Field(None, max_length=50)
 
     _codigo_sin_espacios = field_validator("codigo")(_sin_espacios)
 
@@ -68,23 +67,24 @@ class ItemCreate(ItemBase):
 
 
 class ItemUpdate(BaseModel):
-    codigo: Optional[str] = Field(None, max_length=50)
-    nombre: Optional[str] = Field(None, max_length=150)
-    descripcion: Optional[str] = None
-    categoria_id: Optional[int] = Field(None, gt=0)
-    precio_unitario: Optional[Precio] = None
-    talla: Optional[str] = Field(None, max_length=10)
-    stock_actual: Optional[int] = Field(None, ge=0)
-    stock_minimo: Optional[int] = Field(None, ge=0)
-    aplica_iva: Optional[bool] = None
-    activo: Optional[bool] = None
+    model_config = ConfigDict(extra="forbid")
+
+    codigo: str | None = Field(None, max_length=50)
+    nombre: str | None = Field(None, max_length=150)
+    descripcion: str | None = None
+    categoria_id: int | None = Field(None, gt=0)
+    precio_unitario: Precio | None = None
+    talla: str | None = Field(None, max_length=10)
+    stock_minimo: int | None = Field(None, ge=0)
+    aplica_iva: bool | None = None
+    activo: bool | None = None
 
     _normalizar_talla = field_validator("talla")(_normalizar_talla)
     _sin_espacios = field_validator("codigo", "nombre")(_sin_espacios)
 
     @field_validator("stock_minimo")
     @classmethod
-    def _stock_minimo_no_nulo(cls, value: Optional[int]) -> int:
+    def _stock_minimo_no_nulo(cls, value: int | None) -> int:
         # Solo se ejecuta si el cliente envía el campo: null explícito no vale
         if value is None:
             raise ValueError("stock_minimo no puede ser nulo; use 0 si no aplica")

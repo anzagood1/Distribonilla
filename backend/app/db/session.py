@@ -1,6 +1,7 @@
 from sqlalchemy import create_engine
 from sqlalchemy.engine import make_url
 from sqlalchemy.orm import sessionmaker
+
 from app.core.config import settings
 
 # engine es el puente de comunicación con Supabase

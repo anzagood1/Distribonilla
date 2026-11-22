@@ -1,11 +1,9 @@
 from logging.config import fileConfig
 
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
-
-from alembic import context
+from sqlalchemy import engine_from_config, pool
 from sqlalchemy.engine import make_url
 
+from alembic import context
 from app.core.config import settings
 from app.db.base import Base
 from app.models import inventory, item  # noqa: F401
