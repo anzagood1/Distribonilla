@@ -2,7 +2,16 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Annotated, Any
 
-from pydantic import BaseModel, ConfigDict, Field, PlainSerializer, field_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    PlainSerializer,
+    computed_field,
+    field_validator,
+)
+
+from app.services.stock_alerts import es_stock_bajo
 
 Precio = Annotated[
     Decimal,
@@ -73,6 +82,14 @@ class ItemUpdate(BaseModel):
     _normalizar_talla = field_validator("talla")(_normalizar_talla)
     _sin_espacios = field_validator("codigo", "nombre")(_sin_espacios)
 
+    @field_validator("stock_minimo")
+    @classmethod
+    def _stock_minimo_no_nulo(cls, value: Optional[int]) -> int:
+        # Solo se ejecuta si el cliente envía el campo: null explícito no vale
+        if value is None:
+            raise ValueError("stock_minimo no puede ser nulo; use 0 si no aplica")
+        return value
+
 
 class ItemResponse(ItemBase):
     id: int
@@ -82,3 +99,9 @@ class ItemResponse(ItemBase):
     actualizado_en: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+    @computed_field
+    @property
+    def stock_bajo(self) -> bool:
+        """GRUPO5-12: producto activo con stock_actual <= stock_minimo."""
+        return self.activo and es_stock_bajo(self.stock_actual, self.stock_minimo)
