@@ -1,3 +1,7 @@
+from app.api.dependencies import get_current_user
+from app.main import app
+from app.models.inventory import Usuario
+
 URL = "/api/v1/inventory/items/"
 
 PRODUCT = {
@@ -27,8 +31,6 @@ def test_prod_api_02_invalid_price_returns_422(client):
 
 
 def test_prod_api_03_update_size(client):
-
-
     app.dependency_overrides[get_current_user] = lambda: Usuario(id=7, activo=True)
     try:
         item_id = client.post(URL, json=PRODUCT).json()["id"]
@@ -52,10 +54,6 @@ def test_tc_apl02_put_without_token_returns_401(client):
 
 
 def test_tc_apl02_put_negative_price_by_authorized_user_returns_422(client):
-    from app.api.dependencies import get_current_user
-    from app.main import app
-    from app.models.inventory import Usuario
-
     item_id = client.post(URL, json=PRODUCT).json()["id"]
 
     app.dependency_overrides[get_current_user] = lambda: Usuario(id=7, activo=True)
