@@ -11,6 +11,18 @@ def get_items(db: Session, skip: int = 0, limit: int = 100):
     return db.query(Item).offset(skip).limit(limit).all()
 
 
+def get_low_stock_items(db: Session, skip: int = 0, limit: int = 100):
+    """GRUPO5-12: productos activos con stock_actual <= stock_minimo."""
+    return (
+        db.query(Item)
+        .filter(Item.activo.is_(True), Item.stock_actual <= Item.stock_minimo)
+        .order_by(Item.stock_actual - Item.stock_minimo, Item.nombre)
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
+
+
 def create_item(db: Session, item: ItemCreate):
     db_item = Item(**item.model_dump())
     db.add(db_item)

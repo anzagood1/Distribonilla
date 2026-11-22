@@ -4,7 +4,7 @@ import json
 import logging
 from typing import Annotated, List
 
-from fastapi import APIRouter, Depends, Header, HTTPException, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
@@ -36,6 +36,19 @@ def read_items(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     """
     items = crud_item.get_items(db, skip=skip, limit=limit)
     return items
+
+
+@router.get("/items/low-stock/", response_model=List[ItemResponse])
+def read_low_stock_items(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=500),
+    db: Session = Depends(get_db),
+):
+    """
+    Lista los productos activos con stock bajo (stock_actual <= stock_minimo),
+    primero los más críticos.
+    """
+    return crud_item.get_low_stock_items(db, skip=skip, limit=limit)
 
 
 @router.put("/items/{item_id}", response_model=ItemResponse)
