@@ -64,6 +64,14 @@ def upgrade() -> None:
         sa.CheckConstraint("stock_actual >= 0", name="productos_stock_actual_check"),
         sa.CheckConstraint("stock_minimo >= 0", name="productos_stock_minimo_check"),
     )
+    op.create_index("idx_productos_categoria", "productos", ["categoria_id"])
+    if is_postgres:
+        op.create_index(
+            "idx_productos_nombre",
+            "productos",
+            [sa.text("to_tsvector('spanish'::regconfig, nombre)")],
+            postgresql_using="gin",
+        )
 
 
 def downgrade() -> None:

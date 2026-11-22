@@ -7,10 +7,12 @@ from sqlalchemy import (
     FetchedValue,
     ForeignKey,
     Identity,
+    Index,
     Integer,
     Numeric,
     Text,
     func,
+    text,
 )
 from sqlalchemy.orm import relationship
 
@@ -34,6 +36,12 @@ class Item(Base):
         CheckConstraint("precio_unitario > 0", name="productos_precio_unitario_check"),
         CheckConstraint("stock_actual >= 0", name="productos_stock_actual_check"),
         CheckConstraint("stock_minimo >= 0", name="productos_stock_minimo_check"),
+        Index("idx_productos_categoria", "categoria_id"),
+        Index(
+            "idx_productos_nombre",
+            text("to_tsvector('spanish'::regconfig, nombre)"),
+            postgresql_using="gin",
+        ).ddl_if(dialect="postgresql"),
     )
 
     id = Column(
