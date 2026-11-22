@@ -6,7 +6,6 @@ from sqlalchemy import (
     Enum,
     ForeignKey,
     Integer,
-    Numeric,
     Text,
 )
 from sqlalchemy.dialects.postgresql import UUID
