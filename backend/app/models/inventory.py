@@ -6,9 +6,10 @@ from sqlalchemy import (
     Enum,
     ForeignKey,
     Integer,
+    JSON,
     Text,
 )
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 
 from app.db.base import Base
 
@@ -41,3 +42,22 @@ class MovimientoInventario(Base):
     venta_id = Column(BigInteger)
     stock_anterior = Column(Integer, nullable=False)
     stock_resultante = Column(Integer, nullable=False)
+
+
+class IdempotencyKey(Base):
+    __tablename__ = "idempotency_keys"
+
+    id = Column(BigInteger, primary_key=True)
+    key = Column(Text, nullable=False, unique=True)
+    request_hash = Column(Text, nullable=False)
+    route = Column(Text, nullable=False)
+    response_status = Column(Integer, nullable=False)
+    response_body = Column(JSON().with_variant(JSONB, "postgresql"), nullable=False)
+    movement_id = Column(
+        BigInteger,
+        ForeignKey("movimientos_inventario.id"),
+        nullable=True,
+    )
+    user_id = Column(BigInteger, ForeignKey("usuarios.id"), nullable=True)
+    created_at = Column(DateTime(timezone=True), nullable=False)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
