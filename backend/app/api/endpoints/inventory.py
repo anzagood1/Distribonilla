@@ -59,10 +59,7 @@ def register_inventory_entry(
     current_user: Usuario = Depends(get_current_user),
 ):
     producto = (
-        db.query(Item)
-        .filter(Item.id == entry.producto_id)
-        .with_for_update()
-        .first()
+        db.query(Item).filter(Item.id == entry.producto_id).with_for_update().first()
     )
 
     if producto is None or not producto.activo:
