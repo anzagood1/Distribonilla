@@ -1,8 +1,12 @@
 from datetime import date, datetime, timezone
 from unittest.mock import Mock
 
+import pytest
+
+from app.api.dependencies import get_current_user
 from app.api.endpoints.inventory import read_item_movements
-from app.models.inventory import MovimientoInventario
+from app.main import app
+from app.models.inventory import MovimientoInventario, Usuario
 from app.models.item import Item
 from fastapi import HTTPException
 
@@ -15,6 +19,16 @@ PRODUCT = {
     "talla": "32",
     "stock_actual": 5,
 }
+
+
+@pytest.fixture(autouse=True)
+def authenticated_product_requests():
+    app.dependency_overrides[get_current_user] = lambda: Usuario(
+        id=7,
+        activo=True,
+    )
+    yield
+    app.dependency_overrides.pop(get_current_user, None)
 
 
 def test_prod_api_01_create_and_list_product(client):
@@ -41,6 +55,13 @@ def test_prod_api_03_update_size(client):
     assert response.status_code == 200
     assert response.json()["talla"] == "34"
     assert response.json()["nombre"] == "Pantalón jean azul"
+
+
+def test_create_product_requires_bearer_token(client):
+    app.dependency_overrides.pop(get_current_user, None)
+    response = client.post(URL, json=PRODUCT)
+    assert response.status_code == 401
+    assert response.json() == {"detail": "Autenticación requerida"}
 
 
 def test_read_item_movements_orders_complete_history():

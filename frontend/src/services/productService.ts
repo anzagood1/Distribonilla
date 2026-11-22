@@ -1,6 +1,7 @@
 import axios from 'axios';
 import type { Product, ProductCreate } from '../types/product';
 import type { InventoryMovement } from '../types/product';
+import { supabase } from '../utils/supabase';
 
 const api = axios.create({
   baseURL:
@@ -9,6 +10,17 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+});
+
+api.interceptors.request.use(async (config) => {
+  if (supabase) {
+    const { data } = await supabase.auth.getSession();
+    const accessToken = data.session?.access_token;
+    if (accessToken) {
+      config.headers.Authorization = `Bearer ${accessToken}`;
+    }
+  }
+  return config;
 });
 
 export async function getProducts(): Promise<Product[]> {

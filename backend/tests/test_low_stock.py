@@ -1,12 +1,25 @@
 import pytest
 from pydantic import ValidationError
 
+from app.api.dependencies import get_current_user
+from app.main import app
+from app.models.inventory import Usuario
 from app.models.item import Item
 from app.schemas.item import ItemUpdate
 from app.services.stock_alerts import STOCK_MINIMO_POR_DEFECTO, es_stock_bajo
 
 ITEMS_URL = "/api/v1/inventory/items/"
 LOW_STOCK_URL = "/api/v1/inventory/items/low-stock/"
+
+
+@pytest.fixture(autouse=True)
+def authenticated_stock_requests():
+    app.dependency_overrides[get_current_user] = lambda: Usuario(
+        id=7,
+        activo=True,
+    )
+    yield
+    app.dependency_overrides.pop(get_current_user, None)
 
 
 def add_product(db_session, codigo, stock_actual, stock_minimo=3, **extra):
