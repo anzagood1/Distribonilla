@@ -81,9 +81,34 @@ jobs:
 
           echo "Reporte LCOV verificado correctamente."
 
-      # 6. Ejecutar análisis de SonarCloud
+      - name: Setup Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: '3.11'
+
+      - name: Install backend and test dependencies
+        run: |
+          python -m pip install --require-hashes --only-binary=:all: -r backend/requirements-ci.lock
+
+      - name: Run Python tests and generate coverage
+        env:
+          DATABASE_URL: postgresql://127.0.0.1:1/distribonilla_test
+          VITE_SUPABASE_URL: http://127.0.0.1:1
+          VITE_SUPABASE_PUBLISHABLE_KEY: isolated-test-placeholder
+        run: |
+          if [ -d backend/tests ] && find backend/tests -type f \( -name 'test_*.py' -o -name '*_test.py' \) -print -quit | grep -q .; then
+            cd backend
+            python -m coverage run --source=app -m pytest tests
+            python -m coverage xml -o coverage.xml
+            python -c "import xml.etree.ElementTree as ET; root = ET.parse('coverage.xml').getroot(); assert root.tag == 'coverage' and root.findall('.//class') and int(root.attrib['lines-valid']) > 0"
+            cd ..
+            echo 'SONAR_PYTHON_ARGS=-Dsonar.tests=frontend/tests,backend/tests -Dsonar.exclusions=frontend/tests/**,backend/tests/** -Dsonar.python.coverage.reportPaths=backend/coverage.xml' >> "$GITHUB_ENV"
+          else
+            echo "No Python test files found. Python tests and coverage were not run."
+          fi
+
       - name: SonarCloud Scan
-        uses: SonarSource/sonarqube-scan-action@v8.3.0
+        uses: SonarSource/sonarqube-scan-action@d209202bc7d53ff1cc128f7f907dac145c9d6ae9
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
@@ -91,7 +116,8 @@ jobs:
             -Dsonar.organization=anzagood1
             -Dsonar.projectKey=anzagood1_Distribonilla
             -Dsonar.projectName=Distribonilla
-            -Dsonar.coverage.exclusions=frontend/tests/**
+            -Dsonar.coverage.exclusions=frontend/tests/**,backend/alembic/**
             -Dsonar.javascript.lcov.reportPaths=frontend/coverage/lcov.info
+            ${{ env.SONAR_PYTHON_ARGS }}
             -Dsonar.sourceEncoding=UTF-8
             -Dsonar.qualitygate.wait=true
