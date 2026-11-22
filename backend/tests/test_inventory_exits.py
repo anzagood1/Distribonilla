@@ -235,7 +235,7 @@ def test_unique_key_integrity_conflict_is_409(monkeypatch):
         expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
         response_body={"id": 33},
     )
-    db.query(IdempotencyKey).filter().first.side_effect = [None, existing]
+    db.query(IdempotencyKey).filter().first.side_effect = [None, None, existing]
     cause = Exception("duplicate")
     cause.pgcode = "23505"
     cause.diag = Mock(
@@ -254,6 +254,8 @@ def test_unique_key_integrity_conflict_is_409(monkeypatch):
         register_inventory_exit(entry(), db, Usuario(id=7, activo=True), "X")
     assert error.value.status_code == 409
     db.rollback.assert_called_once()
+    db.flush.assert_called_once()
+    inspector.get_indexes.assert_called_once()
 
 
 def test_unique_violation_on_unrelated_index_stays_500(monkeypatch):
@@ -329,7 +331,13 @@ def test_race_recovery_respects_identity_route_and_expiry(monkeypatch, kind):
         response_body={"id": 33},
     )
     db, _, _ = make_db(Item(id=1, activo=True, stock_actual=5))
-    db.query(IdempotencyKey).filter().first.side_effect = [None, existing, existing]
+    db.query(IdempotencyKey).filter().first.side_effect = [
+        None,
+        None,
+        existing,
+        existing,
+        existing,
+    ]
     cause = Exception("duplicate")
     cause.pgcode = "23505"
     cause.diag = Mock(
@@ -433,6 +441,8 @@ def test_expired_race_retry_is_bounded(monkeypatch):
     )
     db.query(IdempotencyKey).filter().first.side_effect = [
         None,
+        None,
+        expired,
         expired,
         expired,
         expired,
@@ -452,4 +462,7 @@ def test_expired_race_retry_is_bounded(monkeypatch):
         register_inventory_exit(entry(), db, Usuario(id=7, activo=True), "X")
     assert error.value.status_code == 500
     assert db.rollback.call_count == 2
+    assert db.flush.call_count == 2
+    assert inspector.get_indexes.call_count == 2
+    assert db.query(IdempotencyKey).filter().first.call_count == 6
     db.commit.assert_not_called()
