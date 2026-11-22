@@ -7,7 +7,7 @@ export function ProtectedRoute() {
   const location = useLocation()
 
   if (loading) {
-    return <div className="auth-loading" role="status"><LoaderCircle className="spin" size={28} /><span>Comprobando sesión...</span></div>
+    return <output className="auth-loading"><LoaderCircle className="spin" size={28} /><span>Comprobando sesión...</span></output>
   }
 
   if (!session) {
@@ -21,7 +21,7 @@ export function PublicOnlyRoute() {
   const { session, loading } = useAuth()
 
   if (loading) {
-    return <div className="auth-loading" role="status"><LoaderCircle className="spin" size={28} /><span>Comprobando sesión...</span></div>
+    return <output className="auth-loading"><LoaderCircle className="spin" size={28} /><span>Comprobando sesión...</span></output>
   }
 
   return session ? <Navigate to="/home" replace /> : <Outlet />

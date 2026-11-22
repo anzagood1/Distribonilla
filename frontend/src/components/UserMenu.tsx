@@ -20,11 +20,12 @@ export function UserMenu() {
 
   if (!user) return null
 
-  const name = typeof user.user_metadata?.full_name === 'string'
-    ? user.user_metadata.full_name
-    : typeof user.user_metadata?.name === 'string'
-      ? user.user_metadata.name
-      : null
+  let name: string | null = null
+  if (typeof user.user_metadata?.full_name === 'string') {
+    name = user.user_metadata.full_name
+  } else if (typeof user.user_metadata?.name === 'string') {
+    name = user.user_metadata.name
+  }
   const email = user.email ?? ''
   const initial = (name || email).trim().charAt(0).toUpperCase() || 'U'
 
@@ -33,7 +34,7 @@ export function UserMenu() {
     await logout()
     setSigningOut(false)
     setOpen(false)
-    navigate('/login', { replace: true })
+    await navigate('/login', { replace: true })
   }
 
   return (

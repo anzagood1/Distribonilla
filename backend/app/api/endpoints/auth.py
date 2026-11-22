@@ -1,7 +1,7 @@
 import logging
 
 import httpx
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, status
 from supabase_auth.errors import AuthApiError, AuthError
 
 from app.core.supabase import create_supabase_client
@@ -9,9 +9,30 @@ from app.schemas.auth import LoginRequest, LoginResponse
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+AUTH_SERVICE_UNAVAILABLE = "Servicio de autenticación no disponible"
 
 
-@router.post("/login", response_model=LoginResponse)
+@router.post(
+    "/login",
+    responses={
+        status.HTTP_401_UNAUTHORIZED: {
+            "description": "Credenciales inválidas",
+            "content": {
+                "application/json": {
+                    "example": {"detail": "Credenciales inválidas"}
+                }
+            },
+        },
+        status.HTTP_503_SERVICE_UNAVAILABLE: {
+            "description": "Servicio de autenticación no disponible",
+            "content": {
+                "application/json": {
+                    "example": {"detail": AUTH_SERVICE_UNAVAILABLE}
+                }
+            },
+        },
+    },
+)
 def login(credentials: LoginRequest) -> LoginResponse:
     if not credentials.password:
         raise HTTPException(status_code=401, detail="Credenciales inválidas")
@@ -32,7 +53,7 @@ def login(credentials: LoginRequest) -> LoginResponse:
             exc.status,
         )
         raise HTTPException(
-            status_code=503, detail="Servicio de autenticación no disponible"
+            status_code=503, detail=AUTH_SERVICE_UNAVAILABLE
         ) from exc
     except (AuthError, httpx.RequestError) as exc:
         logger.warning(
@@ -42,13 +63,13 @@ def login(credentials: LoginRequest) -> LoginResponse:
             getattr(exc, "status", None),
         )
         raise HTTPException(
-            status_code=503, detail="Servicio de autenticación no disponible"
+            status_code=503, detail=AUTH_SERVICE_UNAVAILABLE
         ) from exc
 
     if result.session is None:
         logger.warning("Supabase Auth returned no session")
         raise HTTPException(
-            status_code=503, detail="Servicio de autenticación no disponible"
+            status_code=503, detail=AUTH_SERVICE_UNAVAILABLE
         )
     session = result.session
     return LoginResponse(
