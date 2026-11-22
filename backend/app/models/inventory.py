@@ -25,23 +25,6 @@ class Usuario(Base):
     activo = Column(Boolean, nullable=False, default=True)
 
 
-class Producto(Base):
-    __tablename__ = "productos"
-
-    id = Column(BigInteger, primary_key=True)
-    codigo = Column(Text, nullable=False, unique=True)
-    nombre = Column(Text, nullable=False)
-    descripcion = Column(Text)
-    categoria_id = Column(BigInteger)
-    precio_unitario = Column(Numeric, nullable=False)
-    stock_actual = Column(Integer, nullable=False)
-    stock_minimo = Column(Integer, nullable=False)
-    aplica_iva = Column(Boolean, nullable=False)
-    activo = Column(Boolean, nullable=False)
-    creado_en = Column(DateTime(timezone=True), nullable=False)
-    actualizado_en = Column(DateTime(timezone=True), nullable=False)
-
-
 class MovimientoInventario(Base):
     __tablename__ = "movimientos_inventario"
 

@@ -7,7 +7,8 @@ from pydantic import ValidationError
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.api.endpoints.inventory import register_inventory_entry
-from app.models.inventory import MovimientoInventario, Producto, Usuario
+from app.models.inventory import MovimientoInventario, Usuario
+from app.models.item import Item
 from app.schemas.inventory import InventoryEntryCreate
 
 
@@ -35,7 +36,7 @@ def test_quantity_must_be_positive_integer():
 
 
 def test_register_entry_updates_stock_and_creates_movement():
-    product = Producto(id=1, activo=True, stock_actual=20)
+    product = Item(id=1, activo=True, stock_actual=20)
     product.actualizado_en = datetime.now(timezone.utc)
     db = make_db(product)
     user = Usuario(id=7, activo=True)
@@ -60,7 +61,7 @@ def test_register_entry_updates_stock_and_creates_movement():
 
 
 def test_inactive_product_is_rejected():
-    product = Producto(id=1, activo=False, stock_actual=20)
+    product = Item(id=1, activo=False, stock_actual=20)
     db = make_db(product)
     entry = InventoryEntryCreate(producto_id=1, cantidad=5, motivo="Compra")
 
@@ -71,7 +72,7 @@ def test_inactive_product_is_rejected():
 
 
 def test_insert_failure_rolls_back_transaction():
-    product = Producto(id=1, activo=True, stock_actual=20)
+    product = Item(id=1, activo=True, stock_actual=20)
     db = make_db(product)
     db.flush.side_effect = SQLAlchemyError("insert failed")
     entry = InventoryEntryCreate(producto_id=1, cantidad=5, motivo="Compra")
