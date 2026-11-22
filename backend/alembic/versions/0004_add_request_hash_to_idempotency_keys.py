@@ -40,12 +40,5 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    bind = op.get_bind()
-    if not inspect(bind).has_table("idempotency_keys"):
-        return
-
-    columns = {
-        column["name"] for column in inspect(bind).get_columns("idempotency_keys")
-    }
-    if "request_hash" in columns:
-        op.drop_column("idempotency_keys", "request_hash")
+    """No-op: request_hash belongs to 0003 and is not removed by 0004."""
+    pass
