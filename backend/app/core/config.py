@@ -6,11 +6,13 @@ class Settings(BaseSettings):
     VITE_SUPABASE_URL: str
     VITE_SUPABASE_PUBLISHABLE_KEY: str
     DATABASE_URL: str
+    CORS_ORIGINS: str = ""
 
     # Pydantic buscará automáticamente estas variables en el archivo .env
     model_config = SettingsConfigDict(
         env_file=(".env", "../.env"),
         env_file_encoding="utf-8",
+        extra="ignore",
     )
 
 

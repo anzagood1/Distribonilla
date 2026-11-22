@@ -311,3 +311,6 @@ poetry.toml
 pyrightconfig.json
 
 # End of https://www.toptal.com/developers/gitignore/api/python,node
+# Keep environment secrets local while tracking empty templates
+.env.*
+!.env.example
