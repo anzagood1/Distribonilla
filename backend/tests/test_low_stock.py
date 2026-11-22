@@ -132,12 +132,26 @@ def test_low_stock_excludes_inactive_products(client, db_session):
 
 
 def test_low_stock_flag_follows_stock_changes(client, db_session):
-    """La alerta aparece al bajar al umbral y desaparece al reponer."""
+    """La alerta sigue al stock que dejan los movimientos y al umbral configurado."""
     product = add_product(db_session, "P-1", stock_actual=4, stock_minimo=3)
-    url = f"{ITEMS_URL}{product.id}"
 
-    assert client.put(url, json={"stock_actual": 3}).json()["stock_bajo"] is True
-    assert client.put(url, json={"stock_actual": 4}).json()["stock_bajo"] is False
+    def stock_bajo():
+        [p] = client.get(ITEMS_URL).json()
+        return p["stock_bajo"]
+
+    assert stock_bajo() is False
+
+    # Simula el stock que deja una salida (GRUPO5-11) o entrada (GRUPO5-10)
+    product.stock_actual = 3
+    db_session.commit()
+    assert stock_bajo() is True
+
+    product.stock_actual = 4
+    db_session.commit()
+    assert stock_bajo() is False
+
+    # El umbral sí se configura por PUT
+    url = f"{ITEMS_URL}{product.id}"
     assert client.put(url, json={"stock_minimo": 4}).json()["stock_bajo"] is True
 
 
