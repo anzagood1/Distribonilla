@@ -17,6 +17,116 @@ from app.schemas.item import ItemCreate, ItemResponse, ItemUpdate
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+ENTRY_ROUTE = "/api/v1/inventory/entries"
+ENTRY_ERROR_DETAIL = "No fue posible registrar la entrada de mercancía"
+
+
+def _resolve_existing_entry(
+    db: Session,
+    key: str,
+    request_hash: str,
+    user_id: int,
+) -> dict | None:
+    try:
+        existing = db.query(IdempotencyKey).filter(IdempotencyKey.key == key).first()
+    except SQLAlchemyError:
+        logger.exception("No fue posible consultar la clave de idempotencia")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="No fue posible validar la clave de idempotencia",
+        )
+
+    if existing is None:
+        return None
+
+    expires_at = existing.expires_at
+    if expires_at is not None and expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=UTC)
+
+    now = datetime.now(UTC)
+    if expires_at is not None and expires_at <= now:
+        db.delete(existing)
+        db.flush()
+        return None
+
+    if (
+        existing.request_hash != request_hash
+        or existing.route != ENTRY_ROUTE
+        or existing.user_id != user_id
+    ):
+        logger.error(
+            "Idempotency key conflict: %s",
+            {"key": key, "request_hash": request_hash},
+        )
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="La clave de idempotencia ya fue utilizada con otro contenido",
+        )
+
+    return existing.response_body
+
+
+def _persist_inventory_entry(
+    db: Session,
+    producto: Item,
+    movimiento: MovimientoInventario,
+    key: str | None,
+    request_hash: str,
+) -> None:
+    try:
+        producto.stock_actual = movimiento.stock_resultante
+        producto.actualizado_en = datetime.now(UTC)
+        db.add(movimiento)
+        db.flush()
+
+        if key:
+            response_body = {
+                "id": movimiento.id,
+                "producto_id": movimiento.producto_id,
+                "tipo": movimiento.tipo,
+                "cantidad": movimiento.cantidad,
+                "motivo": movimiento.motivo,
+                "notas": movimiento.notas,
+                "fecha": movimiento.fecha.isoformat(),
+                "usuario_id": movimiento.usuario_id,
+                "stock_anterior": movimiento.stock_anterior,
+                "stock_resultante": movimiento.stock_resultante,
+            }
+            db.add(
+                IdempotencyKey(
+                    key=key,
+                    request_hash=request_hash,
+                    route=ENTRY_ROUTE,
+                    response_status=status.HTTP_201_CREATED,
+                    response_body=response_body,
+                    movement_id=movimiento.id,
+                    user_id=movimiento.usuario_id,
+                    created_at=datetime.now(UTC),
+                    expires_at=datetime.now(UTC) + timedelta(hours=24),
+                )
+            )
+
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="La clave de idempotencia ya fue utilizada",
+        )
+    except SQLAlchemyError:
+        logger.exception(ENTRY_ERROR_DETAIL)
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=ENTRY_ERROR_DETAIL,
+        )
+    except Exception:
+        logger.exception("Error inesperado al registrar la entrada de mercancía")
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=ENTRY_ERROR_DETAIL,
+        )
 
 
 @router.post(
@@ -151,41 +261,14 @@ def register_inventory_entry(
         )
 
     if key:
-        try:
-            existing = (
-                db.query(IdempotencyKey).filter(IdempotencyKey.key == key).first()
-            )
-        except SQLAlchemyError:
-            logger.exception("No fue posible consultar la clave de idempotencia")
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="No fue posible validar la clave de idempotencia",
-            )
-        now = datetime.now(UTC)
-
-        if existing is not None:
-            expires_at = existing.expires_at
-            if expires_at is not None and expires_at.tzinfo is None:
-                expires_at = expires_at.replace(tzinfo=UTC)
-
-            if expires_at is not None and expires_at <= now:
-                db.delete(existing)
-                db.flush()
-            elif (
-                existing.request_hash != request_hash
-                or existing.route != "/api/v1/inventory/entries"
-                or existing.user_id != current_user.id
-            ):
-                logger.error(
-                    "Idempotency key conflict: %s",
-                    {"key": key, "request_hash": request_hash},
-                )
-                raise HTTPException(
-                    status_code=status.HTTP_409_CONFLICT,
-                    detail="La clave de idempotencia ya fue utilizada con otro contenido",
-                )
-            else:
-                return existing.response_body
+        existing_response = _resolve_existing_entry(
+            db=db,
+            key=key,
+            request_hash=request_hash,
+            user_id=current_user.id,
+        )
+        if existing_response is not None:
+            return existing_response
 
     stock_anterior = producto.stock_actual
     stock_resultante = stock_anterior + entry.cantidad
@@ -203,59 +286,12 @@ def register_inventory_entry(
         stock_resultante=stock_resultante,
     )
 
-    try:
-        producto.stock_actual = stock_resultante
-        producto.actualizado_en = datetime.now(UTC)
-        db.add(movimiento)
-        db.flush()
-
-        if key:
-            response_body = {
-                "id": movimiento.id,
-                "producto_id": movimiento.producto_id,
-                "tipo": movimiento.tipo,
-                "cantidad": movimiento.cantidad,
-                "motivo": movimiento.motivo,
-                "notas": movimiento.notas,
-                "fecha": movimiento.fecha.isoformat(),
-                "usuario_id": movimiento.usuario_id,
-                "stock_anterior": movimiento.stock_anterior,
-                "stock_resultante": movimiento.stock_resultante,
-            }
-            db.add(
-                IdempotencyKey(
-                    key=key,
-                    request_hash=request_hash,
-                    route="/api/v1/inventory/entries",
-                    response_status=status.HTTP_201_CREATED,
-                    response_body=response_body,
-                    movement_id=movimiento.id,
-                    user_id=current_user.id,
-                    created_at=datetime.now(UTC),
-                    expires_at=datetime.now(UTC) + timedelta(hours=24),
-                )
-            )
-
-        db.commit()
-    except IntegrityError:
-        db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="La clave de idempotencia ya fue utilizada",
-        )
-    except SQLAlchemyError:
-        logger.exception("No fue posible registrar la entrada de mercancía")
-        db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="No fue posible registrar la entrada de mercancía",
-        )
-    except Exception:
-        logger.exception("Error inesperado al registrar la entrada de mercancía")
-        db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="No fue posible registrar la entrada de mercancía",
-        )
+    _persist_inventory_entry(
+        db=db,
+        producto=producto,
+        movimiento=movimiento,
+        key=key,
+        request_hash=request_hash,
+    )
 
     return movimiento
