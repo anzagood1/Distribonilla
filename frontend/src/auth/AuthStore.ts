@@ -5,6 +5,7 @@ export interface AuthContextValue {
   session: Session | null
   user: User | null
   loading: boolean
+  configurationError: string | null
   login: (email: string, password: string) => Promise<{ error: string | null }>
   logout: () => Promise<{ error: string | null }>
 }

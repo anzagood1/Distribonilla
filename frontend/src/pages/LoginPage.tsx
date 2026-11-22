@@ -6,7 +6,7 @@ import { getLoginErrorMessage } from '../utils/loginErrors'
 import { validateLogin, type LoginValidationResult } from '../utils/loginValidation'
 
 export function LoginPage() {
-  const { login } = useAuth()
+  const { login, configurationError } = useAuth()
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -61,6 +61,10 @@ export function LoginPage() {
         </header>
 
         <form className="login-form" onSubmit={handleSubmit} noValidate>
+          {configurationError && (
+            <div className="auth-error" role="alert">{configurationError}</div>
+          )}
+
           <div className="field-group">
             <label htmlFor="email">Correo electrónico</label>
             <input id="email" name="email" type="email" autoComplete="email" value={email}
