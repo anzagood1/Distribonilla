@@ -1,4 +1,6 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
+import hashlib
+import json
 from unittest.mock import Mock
 
 import pytest
@@ -7,7 +9,7 @@ from pydantic import ValidationError
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.api.endpoints.inventory import register_inventory_entry
-from app.models.inventory import MovimientoInventario, Usuario
+from app.models.inventory import IdempotencyKey, MovimientoInventario, Usuario
 from app.models.item import Item
 from app.schemas.inventory import InventoryEntryCreate
 
@@ -24,6 +26,36 @@ def make_db(product):
     db.commit = Mock()
     db.rollback = Mock()
     db.add = Mock()
+    return db
+
+
+def request_hash(entry):
+    payload = json.dumps(
+        entry.model_dump(mode="json"),
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+    )
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def make_idempotent_db(product, existing):
+    item_query = Mock()
+    item_query.filter.return_value = item_query
+    item_query.with_for_update.return_value = item_query
+    item_query.first.return_value = product
+
+    key_query = Mock()
+    key_query.filter.return_value = key_query
+    key_query.first.return_value = existing
+
+    db = Mock()
+    db.query.side_effect = lambda model: item_query if model is Item else key_query
+    db.flush = Mock()
+    db.commit = Mock()
+    db.rollback = Mock()
+    db.add = Mock()
+    db.delete = Mock()
     return db
 
 
@@ -82,3 +114,81 @@ def test_insert_failure_rolls_back_transaction():
 
     assert exc.value.status_code == 500
     db.rollback.assert_called_once()
+
+
+def test_repeated_idempotency_key_returns_original_response():
+    product = Item(id=1, activo=True, stock_actual=20)
+    entry = InventoryEntryCreate(
+        producto_id=1,
+        cantidad=4,
+        motivo="Compra proveedor",
+        notas="Prueba",
+    )
+    stored_body = {
+        "id": 33,
+        "producto_id": 1,
+        "tipo": "entrada",
+        "cantidad": 4,
+        "motivo": "Compra proveedor",
+        "notas": "Prueba",
+        "fecha": datetime.now(timezone.utc).isoformat(),
+        "usuario_id": 7,
+        "stock_anterior": 5,
+        "stock_resultante": 9,
+    }
+    existing = IdempotencyKey(
+        key="X",
+        request_hash=request_hash(entry),
+        route="/api/v1/inventory/entries",
+        response_status=201,
+        response_body=stored_body,
+        movement_id=33,
+        user_id=7,
+        created_at=datetime.now(timezone.utc),
+        expires_at=datetime.now(timezone.utc) + timedelta(hours=24),
+    )
+    db = make_idempotent_db(product, existing)
+
+    result = register_inventory_entry(
+        entry,
+        db,
+        Usuario(id=7, activo=True),
+        idempotency_key="X",
+    )
+
+    assert result == stored_body
+    assert product.stock_actual == 20
+    db.commit.assert_not_called()
+
+
+def test_same_key_with_different_content_is_conflict():
+    product = Item(id=1, activo=True, stock_actual=20)
+    entry = InventoryEntryCreate(
+        producto_id=1,
+        cantidad=5,
+        motivo="Contenido distinto",
+    )
+    existing = IdempotencyKey(
+        key="X",
+        request_hash="hash-original",
+        route="/api/v1/inventory/entries",
+        response_status=201,
+        response_body={"id": 33},
+        movement_id=33,
+        user_id=7,
+        created_at=datetime.now(timezone.utc),
+        expires_at=datetime.now(timezone.utc) + timedelta(hours=24),
+    )
+    db = make_idempotent_db(product, existing)
+
+    with pytest.raises(HTTPException) as exc:
+        register_inventory_entry(
+            entry,
+            db,
+            Usuario(id=7, activo=True),
+            idempotency_key="X",
+        )
+
+    assert exc.value.status_code == 409
+    assert product.stock_actual == 20
+    db.commit.assert_not_called()
