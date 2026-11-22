@@ -313,3 +313,42 @@ def test_concurrent_same_key_for_different_products_rolls_back_loser(
         keys = session.scalars(select(IdempotencyKey)).all()
         assert stocks == [1, 5]
         assert len(movements) == len(keys) == 1
+
+
+def test_idempotent_replay_survives_product_deactivation(pg_api):
+    _, factory = pg_api
+    first = send(4, key="inactive-replay")
+    assert first.status_code == 201
+    with factory.begin() as session:
+        session.get(Item, 1).activo = False
+    replay = send(4, key="inactive-replay")
+    assert replay.status_code == 201
+    assert replay.json() == first.json()
+    assert state(factory) == (1, [("salida", 4, 5, 1, 1)], 1)
+
+
+def test_idempotency_conflict_precedes_missing_product(pg_api):
+    _, factory = pg_api
+    assert send(4, key="missing-conflict").status_code == 201
+    response = send(4, key="missing-conflict", product_id=999)
+    assert response.status_code == 409
+    assert state(factory) == (1, [("salida", 4, 5, 1, 1)], 1)
+
+
+@pytest.mark.parametrize("mismatch", ["user", "route"])
+def test_idempotency_scope_conflict_precedes_inactive_product(pg_api, mismatch):
+    _, factory = pg_api
+    assert send(4, key="scope-conflict").status_code == 201
+    with factory.begin() as session:
+        session.get(Item, 1).activo = False
+        key = session.scalar(
+            select(IdempotencyKey).where(IdempotencyKey.key == "scope-conflict")
+        )
+        if mismatch == "user":
+            session.add(Usuario(id=2, auth_user_id=uuid.uuid4(), activo=True))
+            session.flush()
+            key.user_id = 2
+        else:
+            key.route = "/api/v1/inventory/entries"
+    assert send(4, key="scope-conflict").status_code == 409
+    assert state(factory) == (1, [("salida", 4, 5, 1, 1)], 1)

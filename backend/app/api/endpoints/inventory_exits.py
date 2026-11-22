@@ -52,6 +52,28 @@ def _register_inventory_exit(
     ).hexdigest()
 
     try:
+        if key:
+            existing = (
+                db.query(IdempotencyKey).filter(IdempotencyKey.key == key).first()
+            )
+            if existing is not None:
+                expires_at = existing.expires_at
+                if expires_at.tzinfo is None:
+                    expires_at = expires_at.replace(tzinfo=timezone.utc)
+                if expires_at > datetime.now(timezone.utc):
+                    if (
+                        existing.request_hash != request_hash
+                        or existing.route != EXIT_ROUTE
+                        or existing.user_id != current_user.id
+                    ):
+                        raise HTTPException(
+                            status_code=409,
+                            detail="La clave de idempotencia ya fue utilizada con otro contenido",
+                        )
+                    return existing.response_body
+                # Refresh a potentially stale expired record after acquiring the lock.
+                db.expire(existing)
+
         product = (
             db.query(Item)
             .filter(Item.id == exit_request.producto_id)
