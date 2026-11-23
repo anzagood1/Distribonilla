@@ -32,19 +32,23 @@ def test_single_stock_update_and_idempotency(request: pytest.FixtureRequest):
             text("CREATE TABLE stock_audit (old_stock integer, new_stock integer)")
         )
         conn.execute(
-            text("""
+            text(
+                """
             CREATE FUNCTION audit_stock_update() RETURNS trigger LANGUAGE plpgsql AS $$
             BEGIN
                 INSERT INTO stock_audit VALUES (OLD.stock_actual, NEW.stock_actual);
                 RETURN NEW;
             END; $$
-        """)
+        """
+            )
         )
         conn.execute(
-            text("""
+            text(
+                """
             CREATE TRIGGER audit_stock_update BEFORE UPDATE ON productos
             FOR EACH ROW EXECUTE FUNCTION audit_stock_update()
-        """)
+        """
+            )
         )
     first, replay = post_entry(), post_entry()
     with engine.connect() as conn:
