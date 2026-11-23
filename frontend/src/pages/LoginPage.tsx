@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState, type FormEvent } from 'react'
+import { useLayoutEffect, useRef, useState, type SubmitEvent } from 'react'
 import { Eye, EyeOff, LoaderCircle } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
@@ -21,7 +21,7 @@ export function LoginPage() {
     return () => { mounted.current = false }
   }, [])
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault()
     setError(null)
 

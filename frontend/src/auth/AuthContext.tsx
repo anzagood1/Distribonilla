@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { isAxiosError } from 'axios'
 import { supabase, supabaseConfigurationError } from '../utils/supabase'
@@ -6,7 +6,7 @@ import { loginWithBackend, type LoginResponse } from '../services/auth'
 import { classifyLoginError, getLoginErrorMessage } from '../utils/loginErrors'
 import { AuthContext } from './AuthStore'
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+export function AuthProvider({ children }: { readonly children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(() => Boolean(supabase))
 
@@ -40,7 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  const login = async (email: string, password: string) => {
+  const login = useCallback(async (email: string, password: string) => {
     const fallback = getLoginErrorMessage('unexpected', 'es')
     if (!supabase) {
       return { error: supabaseConfigurationError ?? fallback }
@@ -72,27 +72,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       return { error: fallback }
     }
-  }
+  }, [])
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     if (!supabase) return { error: supabaseConfigurationError ?? null }
     const { error } = await supabase.auth.signOut()
     if (!error) setSession(null)
     return { error: error?.message ?? null }
-  }
+  }, [])
+
+  const value = useMemo(() => ({
+    session,
+    user: session?.user ?? null,
+    loading,
+    configurationError: supabaseConfigurationError,
+    login,
+    logout,
+  }), [session, loading, login, logout])
 
   return (
-    <AuthContext.Provider
-      value={{
-        session,
-        user: session?.user ?? null,
-        loading,
-        configurationError: supabaseConfigurationError,
-        login,
-        logout,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
+    <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
   )
 }

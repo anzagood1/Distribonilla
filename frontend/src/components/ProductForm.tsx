@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import type { ComponentProps } from 'react';
+import type { SubmitEvent } from 'react';
 import { AlertCircle, LoaderCircle } from 'lucide-react';
 import type { ProductCreate } from '../types/product';
 
@@ -56,7 +56,7 @@ function ProductForm({ onSubmit, loading }: ProductFormProps) {
   const fieldError = (field: string) =>
     touched[field] ? errors[field] : undefined;
 
-  const handleSubmit: NonNullable<ComponentProps<'form'>['onSubmit']> = async (event) => {
+  const handleSubmit = (event: SubmitEvent<HTMLFormElement>): void => {
     event.preventDefault();
     setTouched({
       nombre: true,
@@ -81,7 +81,7 @@ function ProductForm({ onSubmit, loading }: ProductFormProps) {
       return;
     }
 
-    await onSubmit({
+    void onSubmit({
       nombre: nombre.trim(),
       descripcion: descripcion.trim() || null,
       precio_unitario: Number(precio),

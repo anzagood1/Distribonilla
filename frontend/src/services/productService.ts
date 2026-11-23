@@ -1,6 +1,11 @@
 import axios from 'axios';
-import type { Product, ProductCreate } from '../types/product';
-import type { InventoryMovement } from '../types/product';
+import type {
+  InventoryEntryCreate,
+  InventoryExitCreate,
+  InventoryMovement,
+  Product,
+  ProductCreate,
+} from '../types/product';
 import { supabase } from '../utils/supabase';
 
 const api = axios.create({
@@ -36,6 +41,28 @@ export async function createProduct(
     product
   );
 
+  return response.data;
+}
+
+export async function registerInventoryEntry(
+  entry: InventoryEntryCreate
+): Promise<InventoryMovement> {
+  const response = await api.post<InventoryMovement>(
+    '/api/v1/inventory/entries',
+    entry,
+    { headers: { 'Idempotency-Key': crypto.randomUUID() } }
+  );
+  return response.data;
+}
+
+export async function registerInventoryExit(
+  exit: InventoryExitCreate
+): Promise<InventoryMovement> {
+  const response = await api.post<InventoryMovement>(
+    '/api/v1/inventory/exits',
+    exit,
+    { headers: { 'Idempotency-Key': crypto.randomUUID() } }
+  );
   return response.data;
 }
 

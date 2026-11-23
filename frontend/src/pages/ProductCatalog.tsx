@@ -5,13 +5,18 @@ import {
   ArrowUpRight,
   Boxes,
   History,
+  Minus,
   PackagePlus,
   Home,
+  Plus,
   RefreshCw,
   Search,
   X,
 } from 'lucide-react';
 import { getProducts } from '../services/productService';
+import InventoryAdjustmentDialog, {
+  type InventoryAdjustmentType,
+} from '../components/InventoryAdjustmentDialog';
 import type { Product } from '../types/product';
 
 function ProductCatalog() {
@@ -21,6 +26,10 @@ function ProductCatalog() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [reloadKey, setReloadKey] = useState(0);
+  const [adjustment, setAdjustment] = useState<{
+    product: Product;
+    type: InventoryAdjustmentType;
+  } | null>(null);
 
   useEffect(() => {
     const loadProducts = async () => {
@@ -132,7 +141,7 @@ function ProductCatalog() {
               <th>Precio</th>
               <th>Stock actual</th>
               <th>Stock mínimo</th>
-              <th>Kardex</th>
+              <th>Acciones</th>
             </tr>
           </thead>
 
@@ -159,15 +168,33 @@ function ProductCatalog() {
                 </td>
                 <td>{product.stock_minimo}</td>
                 <td>
-                  <button
-                    type="button"
-                    className="kardex-button"
-                    onClick={() => void navigate(`/productos/${product.id}/kardex`)}
-                    aria-label={`Abrir kardex de ${product.nombre}`}
-                  >
-                    <History size={15} />
-                    Ver historial
-                  </button>
+                  <div className="stock-actions">
+                    <button
+                      type="button"
+                      className="stock-adjust-button stock-add"
+                      onClick={() => setAdjustment({ product, type: 'entrada' })}
+                      aria-label={`Aumentar stock de ${product.nombre}`}
+                    >
+                      <Plus size={14} /> Entrada
+                    </button>
+                    <button
+                      type="button"
+                      className="stock-adjust-button stock-remove"
+                      onClick={() => setAdjustment({ product, type: 'salida' })}
+                      disabled={product.stock_actual === 0}
+                      aria-label={`Disminuir stock de ${product.nombre}`}
+                    >
+                      <Minus size={14} /> Salida
+                    </button>
+                    <button
+                      type="button"
+                      className="kardex-button"
+                      onClick={() => void navigate(`/productos/${product.id}/kardex`)}
+                      aria-label={`Abrir kardex de ${product.nombre}`}
+                    >
+                      <History size={15} /> Historial
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -264,6 +291,17 @@ function ProductCatalog() {
           {renderCatalog()}
         </section>
       </div>
+      {adjustment && (
+        <InventoryAdjustmentDialog
+          product={adjustment.product}
+          type={adjustment.type}
+          onClose={() => setAdjustment(null)}
+          onSaved={() => {
+            setAdjustment(null);
+            setReloadKey((value) => value + 1);
+          }}
+        />
+      )}
     </main>
   );
 }

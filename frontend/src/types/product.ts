@@ -32,3 +32,17 @@ export interface InventoryMovement {
   stock_anterior: number;
   stock_resultante: number;
 }
+
+export interface InventoryEntryCreate {
+  producto_id: number;
+  cantidad: number;
+  motivo: string;
+  notas?: string | null;
+}
+
+export interface InventoryExitCreate {
+  producto_id: number;
+  cantidad: number;
+  motivo: 'merma' | 'daño' | 'ajuste';
+  notas?: string | null;
+}
