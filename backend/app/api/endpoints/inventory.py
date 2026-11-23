@@ -74,10 +74,14 @@ def _persist_inventory_entry(
     request_hash: str,
 ) -> None:
     try:
-        producto.stock_actual = movimiento.stock_resultante
-        producto.actualizado_en = datetime.now(UTC)
         db.add(movimiento)
         db.flush()
+        db.refresh(producto, attribute_names=["stock_actual"])
+        if producto.stock_actual != movimiento.stock_resultante:
+            raise SQLAlchemyError(
+                "Inventory stock trigger returned an unexpected value"
+            )
+        producto.actualizado_en = datetime.now(UTC)
 
         if key:
             response_body = {
