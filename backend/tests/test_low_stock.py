@@ -12,6 +12,16 @@ ITEMS_URL = "/api/v1/inventory/items/"
 LOW_STOCK_URL = "/api/v1/inventory/items/low-stock/"
 
 
+@pytest.fixture(autouse=True)
+def authenticated_stock_requests():
+    app.dependency_overrides[get_current_user] = lambda: Usuario(
+        id=7,
+        activo=True,
+    )
+    yield
+    app.dependency_overrides.pop(get_current_user, None)
+
+
 def add_product(db_session, codigo, stock_actual, stock_minimo=3, **extra):
     product = Item(
         codigo=codigo,

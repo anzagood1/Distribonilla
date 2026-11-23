@@ -71,6 +71,7 @@ def test_register_entry_updates_stock_and_creates_movement():
     product = Item(id=1, activo=True, stock_actual=20)
     product.actualizado_en = datetime.now(UTC)
     db = make_db(product)
+    db.refresh.side_effect = lambda obj, **kwargs: setattr(obj, "stock_actual", 35)
     user = Usuario(id=7, activo=True)
     entry = InventoryEntryCreate(
         producto_id=1,
@@ -213,6 +214,7 @@ def test_expired_idempotency_key_is_removed_and_entry_is_registered():
         expires_at=datetime.now(UTC) - timedelta(hours=1),
     )
     db = make_idempotent_db(product, existing)
+    db.refresh.side_effect = lambda obj, **kwargs: setattr(obj, "stock_actual", 25)
 
     movement = register_inventory_entry(
         entry,

@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState, type FormEvent } from 'react'
+import { useLayoutEffect, useRef, useState, type SubmitEvent } from 'react'
 import { Eye, EyeOff, LoaderCircle } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
@@ -6,7 +6,7 @@ import { getLoginErrorMessage } from '../utils/loginErrors'
 import { validateLogin, type LoginValidationResult } from '../utils/loginValidation'
 
 export function LoginPage() {
-  const { login } = useAuth()
+  const { login, configurationError } = useAuth()
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -21,7 +21,7 @@ export function LoginPage() {
     return () => { mounted.current = false }
   }, [])
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault()
     setError(null)
 
@@ -61,6 +61,10 @@ export function LoginPage() {
         </header>
 
         <form className="login-form" onSubmit={handleSubmit} noValidate>
+          {configurationError && (
+            <div className="auth-error" role="alert">{configurationError}</div>
+          )}
+
           <div className="field-group">
             <label htmlFor="email">Correo electrónico</label>
             <input id="email" name="email" type="email" autoComplete="email" value={email}

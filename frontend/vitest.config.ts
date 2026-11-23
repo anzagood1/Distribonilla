@@ -9,7 +9,8 @@ export default defineConfig({
     include: ['tests/components/*.test.tsx'],
     coverage: {
       provider: 'v8',
-      include: ['src/auth/AuthContext.tsx', 'src/pages/LoginPage.tsx'],
+      include: ['src/**/*.{ts,tsx}'],
+      exclude: ['src/utils/loginValidation.ts', 'src/utils/loginErrors.ts'],
       reportsDirectory: 'coverage/components',
       reporter: ['text', 'lcovonly'],
     },

@@ -14,7 +14,10 @@ const mocks = vi.hoisted(() => ({
   loginWithBackend: vi.fn(),
 }))
 
-vi.mock('../../src/utils/supabase', () => ({ supabase: { auth: mocks } }))
+vi.mock('../../src/utils/supabase', () => ({
+  supabase: { auth: mocks },
+  supabaseConfigurationError: null,
+}))
 vi.mock('../../src/services/auth', () => ({ loginWithBackend: mocks.loginWithBackend }))
 
 const wireTokens = { access_token: 'fixture-access', refresh_token: 'fixture-refresh' }

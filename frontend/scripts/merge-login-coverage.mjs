@@ -2,7 +2,7 @@ import { readFileSync, statSync, writeFileSync } from 'node:fs'
 import { relative, resolve, sep } from 'node:path'
 
 const frontend = process.cwd()
-const expectedComponents = new Set(['src/auth/AuthContext.tsx', 'src/pages/LoginPage.tsx'])
+const unitCoveredHelpers = new Set(['src/utils/loginValidation.ts', 'src/utils/loginErrors.ts'])
 
 function readReport(file) {
   const records = new Map()
@@ -25,13 +25,20 @@ function readReport(file) {
 
 const unit = readReport('coverage/unit/lcov.info')
 const components = readReport('coverage/components/lcov.info')
-if (components.size !== expectedComponents.size) throw new Error('Missing login component coverage')
+for (const source of ['src/auth/AuthContext.tsx', 'src/pages/LoginPage.tsx']) {
+  if (!components.has(source)) throw new Error('Missing login component coverage: ' + source)
+}
+for (const source of unitCoveredHelpers) {
+  if (!unit.has(source) || components.has(source)) {
+    throw new Error('Invalid unit coverage ownership: ' + source)
+  }
+}
 
 for (const [source, lines] of components) {
   const placeholder = unit.get(source)
-  if (!expectedComponents.has(source) || !placeholder?.includes('LH:0') ||
+  if (!placeholder?.includes('LH:0') ||
       !placeholder.includes('BRH:0') || !placeholder.includes('FNH:0') ||
-      !lines.some((line) => /^LH:[1-9]\d*$/.test(line))) {
+      placeholder.some((line) => /^DA:\d+,[1-9]\d*/.test(line) || /^BRDA:[^,]+,[^,]+,[^,]+,[1-9]\d*/.test(line) || /^FNDA:[1-9]\d*/.test(line))) {
     throw new Error('Unexpected overlapping or missing coverage: ' + source)
   }
   unit.set(source, lines)
@@ -39,4 +46,4 @@ for (const [source, lines] of components) {
 
 const lcov = [...unit.values()].map((lines) => [...lines, 'end_of_record'].join('\n')).join('\n')
 writeFileSync('coverage/lcov.info', lcov + '\n')
-console.log('Merged LCOV with ' + unit.size + ' source files and both login components.')
+console.log('Merged LCOV with ' + unit.size + ' source files and ' + components.size + ' Vitest modules.')

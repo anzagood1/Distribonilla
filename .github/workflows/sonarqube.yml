@@ -97,7 +97,7 @@ jobs:
         run: |
           if [ -d backend/tests ] && find backend/tests -type f \( -name 'test_*.py' -o -name '*_test.py' \) -print -quit | grep -q .; then
             cd backend
-            python -m coverage run --source=app -m pytest tests
+            python -m coverage run --source=app,scripts -m pytest tests
             python -m coverage xml -o coverage.xml
             python -c "import xml.etree.ElementTree as ET; root = ET.parse('coverage.xml').getroot(); assert root.tag == 'coverage' and root.findall('.//class') and int(root.attrib['lines-valid']) > 0"
             cd ..
