@@ -102,3 +102,62 @@ it('prevents an exit larger than the current stock', async () => {
   );
   expect(mocks.registerInventoryExit).not.toHaveBeenCalled();
 });
+
+it('TC-INV-13 transitions the low-stock alert after a 4 -> 3 -> 4 stock cycle', async () => {
+  const initial = { ...product, stock_actual: 4, stock_minimo: 3 };
+  const low = { ...initial, stock_actual: 3 };
+  const recovered = { ...initial, stock_actual: 4 };
+
+  mocks.getProducts
+    .mockResolvedValueOnce([initial])
+    .mockResolvedValueOnce([low])
+    .mockResolvedValueOnce([recovered]);
+
+  render(<ProductCatalog />);
+
+  const initialBadge = await screen.findByText('4 unidades');
+  expect(initialBadge.classList.contains('stock-ok')).toBe(true);
+
+  fireEvent.click(
+    screen.getByRole('button', { name: 'Disminuir stock de Camiseta' })
+  );
+  fireEvent.change(screen.getByLabelText('Cantidad'), { target: { value: '1' } });
+  fireEvent.change(screen.getByLabelText('Motivo'), { target: { value: 'merma' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Disminuir stock' }));
+
+  const lowBadge = await screen.findByText('3 unidades');
+  expect(lowBadge.classList.contains('stock-low')).toBe(true);
+
+  await waitFor(() => {
+    const stockLowMetric = screen.getByText('Stock bajo').closest('article');
+    expect(stockLowMetric?.textContent).toContain('1');
+  });
+
+  fireEvent.click(
+    screen.getByRole('button', { name: 'Aumentar stock de Camiseta' })
+  );
+  fireEvent.change(screen.getByLabelText('Cantidad'), { target: { value: '1' } });
+  fireEvent.change(screen.getByLabelText('Motivo'), { target: { value: 'Compra' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Aumentar stock' }));
+
+  const recoveredBadge = await screen.findByText('4 unidades');
+  expect(recoveredBadge.classList.contains('stock-ok')).toBe(true);
+
+  await waitFor(() => {
+    const stockLowMetric = screen.getByText('Stock bajo').closest('article');
+    expect(stockLowMetric?.textContent).toContain('0');
+  });
+
+  expect(mocks.registerInventoryExit).toHaveBeenCalledWith({
+    producto_id: 8,
+    cantidad: 1,
+    motivo: 'merma',
+    notas: null,
+  });
+  expect(mocks.registerInventoryEntry).toHaveBeenCalledWith({
+    producto_id: 8,
+    cantidad: 1,
+    motivo: 'Compra',
+    notas: null,
+  });
+});
