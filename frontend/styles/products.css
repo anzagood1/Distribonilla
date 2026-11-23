@@ -1097,20 +1097,16 @@
   color: #91818a;
 }
 
-.inventory-adjustment-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 1000;
-  display: grid;
-  place-items: center;
-  padding: 20px;
+.inventory-adjustment-dialog::backdrop {
   background: rgba(15, 29, 45, 0.58);
 }
 
 .inventory-adjustment-dialog {
   width: min(460px, 100%);
+  max-width: none;
   max-height: calc(100vh - 40px);
   overflow-y: auto;
+  margin: auto;
   border: 1px solid #e1e7ed;
   border-radius: 18px;
   padding: 24px;
@@ -1151,6 +1147,12 @@
   display: flex;
   flex-direction: column;
   gap: 7px;
+  color: #444250;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.inventory-adjustment-label {
   color: #444250;
   font-size: 13px;
   font-weight: 700;

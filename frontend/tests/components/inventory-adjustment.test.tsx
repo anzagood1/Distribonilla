@@ -1,5 +1,5 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { afterEach, beforeEach, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, expect, it, vi } from 'vitest';
 import ProductCatalog from '../../src/pages/ProductCatalog';
 
 const mocks = vi.hoisted(() => ({
@@ -30,6 +30,21 @@ const product = {
   stock_minimo: 2,
   aplica_iva: true,
 };
+
+beforeAll(() => {
+  Object.defineProperty(HTMLDialogElement.prototype, 'showModal', {
+    configurable: true,
+    value(this: HTMLDialogElement) {
+      this.setAttribute('open', '');
+    },
+  });
+  Object.defineProperty(HTMLDialogElement.prototype, 'close', {
+    configurable: true,
+    value(this: HTMLDialogElement) {
+      this.removeAttribute('open');
+    },
+  });
+});
 
 beforeEach(() => {
   vi.resetAllMocks();
